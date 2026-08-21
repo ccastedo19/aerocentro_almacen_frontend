@@ -9,6 +9,7 @@ import {
   LogOut,
   MapPin,
   Package,
+  Tag,
   UserRound,
   Users,
   Warehouse,
@@ -17,9 +18,9 @@ import {
 import { useTheme } from "@/hooks/use-theme";
 import { Moon, Sun, Monitor } from "lucide-react";
 
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -44,13 +45,10 @@ import {
   SidebarRail,
   useSidebar,
 } from '@/components/ui/sidebar'
+import { useAuth } from "@/hooks/use-auth"
+import { esAdministrador, getIniciales, getNombreCompleto } from "@/lib/auth"
 
 const data = {
-  user: {
-    name: 'shadcn',
-    email: 'm@example.com',
-    avatar: '/avatars/shadcn.jpg',
-  },
   teams: [
     {
       name: 'Aerocentro',
@@ -91,6 +89,11 @@ const data = {
           url: "/ubicaciones",
           icon: MapPin,
         },
+        {
+          title: "Marcas",
+          url: "/marcas",
+          icon: Tag,
+        },
       ],
     },
     {
@@ -110,11 +113,13 @@ const data = {
           title: "Usuarios",
           url: "/usuarios",
           icon: Users,
+          adminOnly: true,
         },
         {
           title: "Backup",
           url: "/backup",
           icon: DatabaseBackup,
+          adminOnly: true,
         },
       ],
     },
@@ -165,152 +170,164 @@ function NavMain({
       title: string
       url: string
       icon: React.ElementType
+      adminOnly?: boolean
     }[]
   }[]
 }) {
   const { pathname } = useLocation()
+  const { usuario } = useAuth()
+  const isAdmin = esAdministrador(usuario)
 
   return (
     <>
-      {groups.map((group, index) => (
-        <SidebarGroup key={group.label ?? `main-${index}`}>
-          {group.label && <SidebarGroupLabel>{group.label}</SidebarGroupLabel>}
-          <SidebarMenu>
-            {group.items.map((item) => (
-              <SidebarMenuItem key={item.title}>
-                <SidebarMenuButton
-                  tooltip={item.title}
-                  isActive={pathname === item.url || (pathname === "/" && item.url === "/inicio")}
-                  render={<Link to={item.url} />}
-                >
-                  <item.icon />
-                  <span>{item.title}</span>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-            ))}
-          </SidebarMenu>
-        </SidebarGroup>
-      ))}
+      {groups.map((group, index) => {
+        const items = group.items.filter((item) => !item.adminOnly || isAdmin)
+
+        if (items.length === 0) return null
+
+        return (
+          <SidebarGroup key={group.label ?? `main-${index}`}>
+            {group.label && <SidebarGroupLabel>{group.label}</SidebarGroupLabel>}
+            <SidebarMenu>
+              {items.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    tooltip={item.title}
+                    isActive={pathname === item.url || (pathname === "/" && item.url === "/inicio")}
+                    render={<Link to={item.url} />}
+                  >
+                    <item.icon />
+                    <span>{item.title}</span>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroup>
+        )
+      })}
     </>
   )
 }
 
 
-function NavUser({
-  user,
-}: {
-  user: {
-    name: string
-    email: string
-    avatar: string
-  }
-}) {
+function NavUser() {
   const { isMobile } = useSidebar()
-  const { theme, setTheme } = useTheme();
-  
-    return (
-      <SidebarMenu>
-        <SidebarMenuItem>
-          <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <SidebarMenuButton
-                  size="lg"
-                  className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-                />
-              }
-            >
-              <Avatar className="h-8 w-8 rounded-lg">
-                <AvatarImage src={user.avatar} alt={user.name} />
-                <AvatarFallback className="rounded-lg">CN</AvatarFallback>
-              </Avatar>
-              <div className="grid flex-1 text-left text-sm leading-tight">
-                <span className="truncate font-medium">{user.name}</span>
-                <span className="truncate text-xs">{user.email}</span>
-              </div>
-              <ChevronsUpDown className="ml-auto size-4" />
-            </DropdownMenuTrigger>
-            <DropdownMenuContent
-              className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-              side={isMobile ? 'bottom' : 'right'}
-              align="end"
-              sideOffset={4}
-            >
-              <DropdownMenuGroup>
-                <DropdownMenuLabel className="p-0 font-normal">
-                  <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                    <Avatar className="h-8 w-8 rounded-lg">
-                      <AvatarImage src={user.avatar} alt={user.name} />
-                      <AvatarFallback className="rounded-lg">CN</AvatarFallback>
-                    </Avatar>
-                    <div className="grid flex-1 text-left text-sm leading-tight">
-                      <span className="truncate font-medium">{user.name}</span>
-                      <span className="truncate text-xs">{user.email}</span>
-                    </div>
+  const { theme, setTheme } = useTheme()
+  const navigate = useNavigate()
+  const { usuario, logout } = useAuth()
+
+  if (!usuario) return null
+
+  const name = getNombreCompleto(usuario)
+  const initials = getIniciales(usuario)
+
+  const handleLogout = () => {
+    void logout().then(() => {
+      navigate("/login", { replace: true })
+    })
+  }
+
+  return (
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <SidebarMenuButton
+                size="lg"
+                className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
+              />
+            }
+          >
+            <Avatar className="h-8 w-8 rounded-lg">
+              <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
+            </Avatar>
+            <div className="grid flex-1 text-left text-sm leading-tight">
+              <span className="truncate font-medium">{name}</span>
+              <span className="truncate text-xs">{usuario.email}</span>
+            </div>
+            <ChevronsUpDown className="ml-auto size-4" />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent
+            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
+            side={isMobile ? 'bottom' : 'right'}
+            align="end"
+            sideOffset={4}
+          >
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="p-0 font-normal">
+                <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
+                  <Avatar className="h-8 w-8 rounded-lg">
+                    <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
+                  </Avatar>
+                  <div className="grid flex-1 text-left text-sm leading-tight">
+                    <span className="truncate font-medium">{name}</span>
+                    <span className="truncate text-xs">{usuario.email}</span>
                   </div>
-                </DropdownMenuLabel>
-              </DropdownMenuGroup>
-              <DropdownMenuSeparator />
+                </div>
+              </DropdownMenuLabel>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
 
-                <DropdownMenuGroup>
-
-                  <DropdownMenuLabel>
-                    Tema
-                  </DropdownMenuLabel>
-
-                  <DropdownMenuRadioGroup
-                    value={theme}
-                    onValueChange={(value) =>
-                      setTheme(value)
-                    }
-                  >
-
-                    <DropdownMenuRadioItem value="light">
-                      <Sun />
-                      Claro
-                    </DropdownMenuRadioItem>
-
-
-                    <DropdownMenuRadioItem value="dark">
-                      <Moon />
-                      Oscuro
-                    </DropdownMenuRadioItem>
-
-
-                    <DropdownMenuRadioItem value="system">
-                      <Monitor />
-                      Sistema
-                    </DropdownMenuRadioItem>
-
-                  </DropdownMenuRadioGroup>
-
-                </DropdownMenuGroup>
-
-                <DropdownMenuSeparator />
-
-                <DropdownMenuGroup>
-
-                  <DropdownMenuItem>
-                    <BadgeCheck />
-                    Cuenta
-                  </DropdownMenuItem>
-                <DropdownMenuItem>
-                  <Bell />
-                  Notificaciones
-                </DropdownMenuItem>
-              </DropdownMenuGroup>
-              <DropdownMenuSeparator />
               <DropdownMenuGroup>
-                <DropdownMenuItem>
-                  <LogOut />
-                  Salir
-                </DropdownMenuItem>
+
+                <DropdownMenuLabel>
+                  Tema
+                </DropdownMenuLabel>
+
+                <DropdownMenuRadioGroup
+                  value={theme}
+                  onValueChange={(value) =>
+                    setTheme(value)
+                  }
+                >
+
+                  <DropdownMenuRadioItem value="light">
+                    <Sun />
+                    Claro
+                  </DropdownMenuRadioItem>
+
+
+                  <DropdownMenuRadioItem value="dark">
+                    <Moon />
+                    Oscuro
+                  </DropdownMenuRadioItem>
+
+
+                  <DropdownMenuRadioItem value="system">
+                    <Monitor />
+                    Sistema
+                  </DropdownMenuRadioItem>
+
+                </DropdownMenuRadioGroup>
+
               </DropdownMenuGroup>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </SidebarMenuItem>
-      </SidebarMenu>
-    )
+
+              <DropdownMenuSeparator />
+
+              <DropdownMenuGroup>
+
+                <DropdownMenuItem>
+                  <BadgeCheck />
+                  Cuenta
+                </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Bell />
+                Notificaciones
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+            <DropdownMenuSeparator />
+            <DropdownMenuGroup>
+              <DropdownMenuItem variant="destructive" onClick={handleLogout}>
+                <LogOut />
+                Salir
+              </DropdownMenuItem>
+            </DropdownMenuGroup>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </SidebarMenuItem>
+    </SidebarMenu>
+  )
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
@@ -323,7 +340,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
         <NavMain groups={data.navGroups} />
       </SidebarContent>
       <SidebarFooter>
-        <NavUser user={data.user} />
+        <NavUser />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>
