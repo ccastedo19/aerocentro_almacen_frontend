@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Plus, Search } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -12,56 +12,80 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import type { Mechanic, Tool } from "@/lib/prestamos-data"
+import {
+  categoriaUnidad,
+  detalleUnidad,
+  nombreUnidad,
+  type MecanicoPunto,
+  type UnidadPrestamo,
+} from "@/lib/prestamos"
 
 type ModalAgregarPrestamoProps = {
   open: boolean
-  mechanic?: Mechanic
-  availableTools: Tool[]
+  mechanic?: MecanicoPunto | null
+  availableUnits: UnidadPrestamo[]
+  isLoading?: boolean
+  isSubmitting?: boolean
+  error?: string
   onOpenChange: (open: boolean) => void
-  onSubmit: (toolIds: number[]) => void
+  onSubmit: (unidadIds: string[]) => void
 }
 
 export function ModalAgregarPrestamo({
   open,
   mechanic,
-  availableTools,
+  availableUnits,
+  isLoading = false,
+  isSubmitting = false,
+  error = "",
   onOpenChange,
   onSubmit,
 }: ModalAgregarPrestamoProps) {
   const [search, setSearch] = useState("")
-  const [selectedToolIds, setSelectedToolIds] = useState<number[]>([])
+  const [selectedIds, setSelectedIds] = useState<string[]>([])
 
-  const filteredTools = useMemo(() => {
+  useEffect(() => {
+    if (!open) return
+    setSearch("")
+    setSelectedIds([])
+  }, [mechanic?.id, open])
+
+  const filteredUnits = useMemo(() => {
     const query = search.trim().toLocaleLowerCase()
 
-    if (!query) return availableTools
+    if (!query) return availableUnits
 
-    return availableTools.filter((tool) =>
-      tool.name.toLocaleLowerCase().includes(query)
-    )
-  }, [availableTools, search])
+    return availableUnits.filter((unidad) => {
+      const haystack = [
+        nombreUnidad(unidad),
+        categoriaUnidad(unidad),
+        detalleUnidad(unidad),
+      ]
+        .join(" ")
+        .toLocaleLowerCase()
+
+      return haystack.includes(query)
+    })
+  }, [availableUnits, search])
 
   const closeModal = () => {
+    if (isSubmitting) return
     setSearch("")
-    setSelectedToolIds([])
+    setSelectedIds([])
     onOpenChange(false)
   }
 
-  const toggleTool = (toolId: number, checked: boolean) => {
-    setSelectedToolIds((current) =>
+  const toggleUnit = (unidadId: string, checked: boolean) => {
+    setSelectedIds((current) =>
       checked
-        ? [...current, toolId]
-        : current.filter((selectedId) => selectedId !== toolId)
+        ? [...current, unidadId]
+        : current.filter((selectedId) => selectedId !== unidadId),
     )
   }
 
-  const submitTools = () => {
-    if (selectedToolIds.length === 0) return
-
-    onSubmit(selectedToolIds)
-    setSearch("")
-    setSelectedToolIds([])
+  const submitUnits = () => {
+    if (selectedIds.length === 0 || isSubmitting) return
+    onSubmit(selectedIds)
   }
 
   return (
@@ -79,56 +103,73 @@ export function ModalAgregarPrestamo({
       <DialogContent className="max-h-[90vh] overflow-hidden sm:max-w-xl">
         <DialogHeader>
           <DialogTitle className="pr-8 text-lg">
-            Añadir préstamo a “{mechanic?.name}”
+            Añadir préstamo a “{mechanic?.nombre_completo}”
           </DialogTitle>
           <DialogDescription>
-            Busca y selecciona una o varias herramientas disponibles para
+            Busca y selecciona una o varias unidades disponibles para
             registrarlas en un solo préstamo.
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3">
+          {error ? (
+            <div
+              className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              role="alert"
+            >
+              {error}
+            </div>
+          ) : null}
+
           <div className="relative">
             <label htmlFor="tool-search" className="sr-only">
-              Buscar herramienta
+              Buscar unidad
             </label>
             <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               id="tool-search"
               className="h-10 pl-9"
-              placeholder="Buscar herramienta por nombre..."
+              placeholder="Buscar por herramienta, marca o ubicación..."
               value={search}
+              disabled={isSubmitting}
               onChange={(event) => setSearch(event.target.value)}
             />
           </div>
 
           <div className="flex items-center justify-between text-sm">
-            <span className="font-medium">Herramientas disponibles</span>
+            <span className="font-medium">Unidades disponibles</span>
             <span className="text-muted-foreground">
-              {selectedToolIds.length} seleccionadas
+              {selectedIds.length} seleccionadas
             </span>
           </div>
 
-          {filteredTools.length > 0 ? (
+          {isLoading ? (
+            <div className="rounded-lg border border-dashed py-8 text-center text-sm text-muted-foreground">
+              Cargando unidades disponibles...
+            </div>
+          ) : filteredUnits.length > 0 ? (
             <div className="max-h-[48vh] space-y-2 overflow-y-auto pr-1">
-              {filteredTools.map((tool) => {
-                const isSelected = selectedToolIds.includes(tool.id)
+              {filteredUnits.map((unidad) => {
+                const isSelected = selectedIds.includes(unidad.id)
+                const extra = detalleUnidad(unidad)
 
                 return (
                   <label
-                    key={tool.id}
+                    key={unidad.id}
                     className="flex cursor-pointer items-center gap-3 rounded-lg border p-3 transition-colors hover:bg-muted/50 has-data-checked:border-primary has-data-checked:bg-muted/50"
                   >
                     <Checkbox
                       checked={isSelected}
+                      disabled={isSubmitting}
                       onCheckedChange={(checked) =>
-                        toggleTool(tool.id, checked)
+                        toggleUnit(unidad.id, checked === true)
                       }
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium">{tool.name}</p>
+                      <p className="truncate font-medium">{nombreUnidad(unidad)}</p>
                       <p className="text-xs text-muted-foreground">
-                        {tool.category}
+                        {categoriaUnidad(unidad)}
+                        {extra ? ` · ${extra}` : ""}
                       </p>
                     </div>
                   </label>
@@ -137,25 +178,29 @@ export function ModalAgregarPrestamo({
             </div>
           ) : (
             <div className="rounded-lg border border-dashed py-8 text-center">
-              <p className="font-medium">No hay herramientas disponibles</p>
+              <p className="font-medium">No hay unidades disponibles</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Prueba con otra búsqueda o devuelve alguna herramienta.
+                Prueba con otra búsqueda o espera a que se devuelva alguna
+                unidad.
               </p>
             </div>
           )}
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={closeModal}>
+          <Button variant="outline" disabled={isSubmitting} onClick={closeModal}>
             Cancelar
           </Button>
           <Button
-            disabled={selectedToolIds.length === 0}
-            onClick={submitTools}
+            disabled={selectedIds.length === 0 || isSubmitting || isLoading}
+            onClick={submitUnits}
           >
             <Plus data-icon="inline-start" />
-            Añadir {selectedToolIds.length || ""}{" "}
-            {selectedToolIds.length === 1 ? "herramienta" : "herramientas"}
+            {isSubmitting
+              ? "Registrando..."
+              : `Añadir ${selectedIds.length || ""} ${
+                  selectedIds.length === 1 ? "unidad" : "unidades"
+                }`}
           </Button>
         </DialogFooter>
       </DialogContent>

@@ -1,5 +1,6 @@
 import { createBrowserRouter } from "react-router-dom";
 
+import { RequireAdmin, RequireAuth, RequireGuest } from "@/components/auth-guards";
 import { MainLayout } from "@/components/MainLayout";
 
 import { Login } from "@/pages/Login";
@@ -10,6 +11,7 @@ import { PuntoPrestamos } from "@/pages/PuntoPrestamos";
 import { Herramientas } from "@/pages/Herramientas";
 import { Categorias } from "@/pages/Categorias";
 import { Ubicaciones } from "@/pages/Ubicaciones";
+import { Marcas } from "@/pages/Marcas";
 import { Mecanicos } from "@/pages/Mecanicos";
 
 const pages = [
@@ -18,25 +20,41 @@ const pages = [
   { path: "herramientas", element: <Herramientas /> },
   { path: "categorias", element: <Categorias /> },
   { path: "ubicaciones", element: <Ubicaciones /> },
+  { path: "marcas", element: <Marcas /> },
   { path: "mecanicos", element: <Mecanicos /> },
-  { path: "usuarios", element: <Usuarios /> },
-  { path: "backup", element: <Backup /> },
 ];
 
 export const router = createBrowserRouter([
   {
-    path: "/login",
-    element: <Login />,
-  },
-  {
-    path: "/",
-    element: <MainLayout />,
+    element: <RequireGuest />,
     children: [
       {
-        index: true,
-        element: <Inicio />,
+        path: "/login",
+        element: <Login />,
       },
-      ...pages,
+    ],
+  },
+  {
+    element: <RequireAuth />,
+    children: [
+      {
+        path: "/",
+        element: <MainLayout />,
+        children: [
+          {
+            index: true,
+            element: <Inicio />,
+          },
+          ...pages,
+          {
+            element: <RequireAdmin />,
+            children: [
+              { path: "usuarios", element: <Usuarios /> },
+              { path: "backup", element: <Backup /> },
+            ],
+          },
+        ],
+      },
     ],
   },
 ]);

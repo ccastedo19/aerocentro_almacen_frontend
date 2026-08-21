@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Search, UserRound, Wrench } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -11,32 +11,47 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import {
-  formatBorrowedAt,
-  type UsedTool,
-} from "@/lib/prestamos-data"
+import { formatBorrowedAt, type PrestamoEnUso } from "@/lib/prestamos"
 
 type ModalBuscarHerramientaEnUsoProps = {
   open: boolean
-  usedTools: UsedTool[]
+  usedTools: PrestamoEnUso[]
+  isLoading?: boolean
+  error?: string
   onOpenChange: (open: boolean) => void
 }
 
 export function ModalBuscarHerramientaEnUso({
   open,
   usedTools,
+  isLoading = false,
+  error = "",
   onOpenChange,
 }: ModalBuscarHerramientaEnUsoProps) {
   const [search, setSearch] = useState("")
+
+  useEffect(() => {
+    if (open) setSearch("")
+  }, [open])
 
   const filteredTools = useMemo(() => {
     const query = search.trim().toLocaleLowerCase()
 
     if (!query) return usedTools
 
-    return usedTools.filter(({ tool }) =>
-      tool.name.toLocaleLowerCase().includes(query)
-    )
+    return usedTools.filter((item) => {
+      const haystack = [
+        item.nombre,
+        item.categoria,
+        item.detalle,
+        item.mechanicName,
+        item.mechanicArea,
+      ]
+        .join(" ")
+        .toLocaleLowerCase()
+
+      return haystack.includes(query)
+    })
   }, [search, usedTools])
 
   const closeModal = () => {
@@ -62,9 +77,18 @@ export function ModalBuscarHerramientaEnUso({
             Buscar herramienta en uso
           </DialogTitle>
           <DialogDescription>
-            Consulta qué mecánico tiene actualmente una herramienta prestada.
+            Consulta qué mecánico tiene actualmente una unidad prestada.
           </DialogDescription>
         </DialogHeader>
+
+        {error ? (
+          <div
+            className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            role="alert"
+          >
+            {error}
+          </div>
+        ) : null}
 
         <div className="relative">
           <label htmlFor="used-tool-search" className="sr-only">
@@ -74,7 +98,7 @@ export function ModalBuscarHerramientaEnUso({
           <Input
             id="used-tool-search"
             className="h-10 pl-9"
-            placeholder="Buscar herramienta por nombre..."
+            placeholder="Buscar por herramienta, marca, ubicación o mecánico..."
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
@@ -87,11 +111,15 @@ export function ModalBuscarHerramientaEnUso({
           </span>
         </div>
 
-        {filteredTools.length > 0 ? (
+        {isLoading ? (
+          <div className="py-10 text-center text-sm text-muted-foreground">
+            Cargando herramientas en uso...
+          </div>
+        ) : filteredTools.length > 0 ? (
           <div className="max-h-[52vh] space-y-2 overflow-y-auto pr-1">
-            {filteredTools.map(({ tool, mechanic, borrowedAt }) => (
+            {filteredTools.map((item) => (
               <div
-                key={tool.id}
+                key={item.detalleId}
                 className="flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div className="flex min-w-0 items-center gap-3">
@@ -99,9 +127,13 @@ export function ModalBuscarHerramientaEnUso({
                     <Wrench className="size-4 text-muted-foreground" />
                   </div>
                   <div className="min-w-0">
-                    <p className="truncate font-medium">{tool.name}</p>
+                    <p className="truncate font-medium">{item.nombre}</p>
                     <p className="text-xs text-muted-foreground">
-                      {tool.category} · Prestada {formatBorrowedAt(borrowedAt)}
+                      {item.categoria}
+                      {item.detalle ? ` · ${item.detalle}` : ""}
+                      {item.borrowedAt
+                        ? ` · Prestada ${formatBorrowedAt(item.borrowedAt)}`
+                        : ""}
                     </p>
                   </div>
                 </div>
@@ -112,7 +144,7 @@ export function ModalBuscarHerramientaEnUso({
                     <p className="text-xs text-muted-foreground">
                       En préstamo con
                     </p>
-                    <p className="text-sm font-medium">{mechanic.name}</p>
+                    <p className="text-sm font-medium">{item.mechanicName}</p>
                   </div>
                 </div>
               </div>
@@ -121,9 +153,15 @@ export function ModalBuscarHerramientaEnUso({
         ) : (
           <div className="flex flex-col items-center justify-center py-10 text-center">
             <Search className="mb-3 size-9 text-muted-foreground" />
-            <p className="font-medium">No se encontró la herramienta</p>
+            <p className="font-medium">
+              {usedTools.length === 0
+                ? "No hay herramientas prestadas"
+                : "No se encontró la herramienta"}
+            </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Verifica el nombre o busca otra herramienta en uso.
+              {usedTools.length === 0
+                ? "Cuando un mecánico tome una unidad, aparecerá aquí."
+                : "Verifica el nombre o busca otra herramienta en uso."}
             </p>
           </div>
         )}

@@ -39,6 +39,11 @@ const routes: Record<
     parent: "Inventario",
   },
 
+  "/marcas": {
+    title: "Marcas",
+    parent: "Inventario",
+  },
+
   "/mecanicos": {
     title: "Mecánicos",
     parent: "Personal",
