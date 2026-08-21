@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 import { Eye, Plus, Search, Wrench } from "lucide-react"
 
 import { ModalAgregarPrestamo } from "@/components/modal/ModalAgregarPrestamo"
@@ -15,109 +15,244 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
+import { ApiError } from "@/lib/api"
+import { getInicialesMecanico } from "@/lib/mecanicos"
 import {
-  initialLoans,
-  mechanics,
-  tools,
-  type Loan,
-  type UsedTool,
-} from "@/lib/prestamos-data"
+  crearPrestamo,
+  devolverTodasDeMecanico,
+  devolverUnidad,
+  estiloTarjetaMecanico,
+  listarHerramientasEnUso,
+  listarPrestamosDeMecanico,
+  listarPuntoPrestamos,
+  listarUnidadesDisponibles,
+  type DetallePrestamoActivo,
+  type MecanicoPunto,
+  type PrestamoEnUso,
+  type UnidadPrestamo,
+} from "@/lib/prestamos"
+
+const MECANICO_ACTIVO = 1
 
 export const PuntoPrestamos = () => {
   const [search, setSearch] = useState("")
-  const [loans, setLoans] =
-    useState<Record<number, Loan[]>>(initialLoans)
+  const [mecanicos, setMecanicos] = useState<MecanicoPunto[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [pageError, setPageError] = useState("")
+
   const [isUsedToolsOpen, setIsUsedToolsOpen] = useState(false)
-  const [viewMechanicId, setViewMechanicId] = useState<number | null>(null)
-  const [addMechanicId, setAddMechanicId] = useState<number | null>(null)
+  const [usedTools, setUsedTools] = useState<PrestamoEnUso[]>([])
+  const [isLoadingUsed, setIsLoadingUsed] = useState(false)
+  const [usedError, setUsedError] = useState("")
+
+  const [viewMechanicId, setViewMechanicId] = useState<string | null>(null)
+  const [viewLoans, setViewLoans] = useState<DetallePrestamoActivo[]>([])
+  const [isLoadingView, setIsLoadingView] = useState(false)
+  const [viewError, setViewError] = useState("")
+  const [returningId, setReturningId] = useState<string | null>(null)
+  const [isReturningAll, setIsReturningAll] = useState(false)
+
+  const [addMechanicId, setAddMechanicId] = useState<string | null>(null)
+  const [availableUnits, setAvailableUnits] = useState<UnidadPrestamo[]>([])
+  const [isLoadingUnits, setIsLoadingUnits] = useState(false)
+  const [isSavingLoan, setIsSavingLoan] = useState(false)
+  const [addError, setAddError] = useState("")
+
+  const loadMecanicos = useCallback(async () => {
+    const data = await listarPuntoPrestamos()
+    setMecanicos(data)
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+
+    setIsLoading(true)
+    setPageError("")
+
+    loadMecanicos()
+      .catch((error) => {
+        if (cancelled) return
+        setPageError(
+          error instanceof ApiError
+            ? error.message
+            : "No se pudo cargar el punto de préstamos.",
+        )
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [loadMecanicos])
 
   const filteredMechanics = useMemo(() => {
     const query = search.trim().toLocaleLowerCase()
 
-    if (!query) return mechanics
+    if (!query) return mecanicos
 
-    return mechanics.filter((mechanic) =>
-      mechanic.name.toLocaleLowerCase().includes(query)
+    return mecanicos.filter((mecanico) =>
+      `${mecanico.nombre_completo} ${mecanico.cargo}`
+        .toLocaleLowerCase()
+        .includes(query),
     )
-  }, [search])
+  }, [mecanicos, search])
 
-  const viewMechanic = mechanics.find(
-    (mechanic) => mechanic.id === viewMechanicId
-  )
-  const addMechanic = mechanics.find(
-    (mechanic) => mechanic.id === addMechanicId
-  )
-  const viewLoans = viewMechanicId ? loans[viewMechanicId] ?? [] : []
+  const viewMechanic = mecanicos.find((mecanico) => mecanico.id === viewMechanicId) ?? null
+  const addMechanic = mecanicos.find((mecanico) => mecanico.id === addMechanicId) ?? null
 
-  const availableTools = useMemo(() => {
-    const loanedToolIds = new Set(
-      Object.values(loans).flatMap((mechanicLoans) =>
-        mechanicLoans.map((loan) => loan.toolId)
+  const loadViewLoans = useCallback(async (mecanicoId: string) => {
+    setIsLoadingView(true)
+    setViewError("")
+
+    try {
+      setViewLoans(await listarPrestamosDeMecanico(mecanicoId))
+    } catch (error) {
+      setViewError(
+        error instanceof ApiError
+          ? error.message
+          : "No se pudieron cargar los préstamos.",
       )
-    )
+    } finally {
+      setIsLoadingView(false)
+    }
+  }, [])
 
-    return tools.filter((tool) => !loanedToolIds.has(tool.id))
-  }, [loans])
-
-  const usedTools = useMemo<UsedTool[]>(
-    () =>
-      mechanics.flatMap((mechanic) =>
-        (loans[mechanic.id] ?? []).flatMap((loan) => {
-          const tool = tools.find((item) => item.id === loan.toolId)
-
-          return tool
-            ? [{ tool, mechanic, borrowedAt: loan.borrowedAt }]
-            : []
-        })
-      ),
-    [loans]
-  )
-
-  const openAddLoan = (mechanicId: number) => {
-    setAddMechanicId(mechanicId)
+  const openViewLoans = (mecanicoId: string) => {
+    setViewMechanicId(mecanicoId)
+    void loadViewLoans(mecanicoId)
   }
 
-  const returnTool = (mechanicId: number, toolId: number) => {
-    setLoans((current) => ({
-      ...current,
-      [mechanicId]: (current[mechanicId] ?? []).filter(
-        (loan) => loan.toolId !== toolId
-      ),
-    }))
+  const openAddLoan = async (mecanicoId: string) => {
+    setAddMechanicId(mecanicoId)
+    setAddError("")
+    setIsLoadingUnits(true)
+
+    try {
+      setAvailableUnits(await listarUnidadesDisponibles())
+    } catch (error) {
+      setAddError(
+        error instanceof ApiError
+          ? error.message
+          : "No se pudieron cargar las unidades disponibles.",
+      )
+      setAvailableUnits([])
+    } finally {
+      setIsLoadingUnits(false)
+    }
   }
 
-  const returnAllTools = (mechanicId: number) => {
-    setLoans((current) => ({ ...current, [mechanicId]: [] }))
+  const openUsedTools = async () => {
+    setIsUsedToolsOpen(true)
+    setIsLoadingUsed(true)
+    setUsedError("")
+
+    try {
+      setUsedTools(await listarHerramientasEnUso())
+    } catch (error) {
+      setUsedError(
+        error instanceof ApiError
+          ? error.message
+          : "No se pudieron cargar las herramientas en uso.",
+      )
+      setUsedTools([])
+    } finally {
+      setIsLoadingUsed(false)
+    }
   }
 
-  const addSelectedTools = (toolIds: number[]) => {
-    if (!addMechanicId || toolIds.length === 0) return
+  const refreshAfterChange = async () => {
+    await loadMecanicos()
 
-    setLoans((current) => ({
-      ...current,
-      [addMechanicId]: [
-        ...(current[addMechanicId] ?? []),
-        ...toolIds.map((toolId) => ({
-          toolId,
-          borrowedAt: new Date().toISOString(),
-        })),
-      ],
-    }))
-    setAddMechanicId(null)
+    if (viewMechanicId) {
+      await loadViewLoans(viewMechanicId)
+    }
+  }
+
+  const handleAddLoan = async (unidadIds: string[]) => {
+    if (!addMechanicId || unidadIds.length === 0) return
+
+    setIsSavingLoan(true)
+    setAddError("")
+
+    try {
+      await crearPrestamo(addMechanicId, unidadIds)
+      setAddMechanicId(null)
+      setAvailableUnits([])
+      await refreshAfterChange()
+    } catch (error) {
+      setAddError(
+        error instanceof ApiError
+          ? error.errors.unidades_ids?.[0]
+            || error.errors.mecanico_id?.[0]
+            || error.message
+          : "No se pudo registrar el préstamo.",
+      )
+    } finally {
+      setIsSavingLoan(false)
+    }
+  }
+
+  const handleReturnTool = async (detalleId: string) => {
+    setReturningId(detalleId)
+    setViewError("")
+
+    try {
+      await devolverUnidad(detalleId)
+      await refreshAfterChange()
+    } catch (error) {
+      setViewError(
+        error instanceof ApiError
+          ? error.errors.detalle?.[0] || error.message
+          : "No se pudo devolver la unidad.",
+      )
+    } finally {
+      setReturningId(null)
+    }
+  }
+
+  const handleReturnAll = async () => {
+    if (!viewMechanicId) return
+
+    setIsReturningAll(true)
+    setViewError("")
+
+    try {
+      await devolverTodasDeMecanico(viewMechanicId)
+      await refreshAfterChange()
+    } catch (error) {
+      setViewError(
+        error instanceof ApiError
+          ? error.errors.mecanico?.[0] || error.message
+          : "No se pudieron devolver las unidades.",
+      )
+    } finally {
+      setIsReturningAll(false)
+    }
   }
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-8">
+    <div className="w-full space-y-8">
       <section className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">
           Punto de Préstamos
         </h1>
         <p className="text-sm text-muted-foreground">
-          Registra y consulta las herramientas que tiene cada mecánico.
+          Registra y consulta las unidades que tiene cada mecánico.
         </p>
       </section>
 
       <section className="space-y-4">
+        {pageError ? (
+          <div
+            className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+            role="alert"
+          >
+            {pageError}
+          </div>
+        ) : null}
+
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="relative w-full max-w-md">
             <label htmlFor="mechanic-search" className="sr-only">
@@ -137,28 +272,45 @@ export const PuntoPrestamos = () => {
             variant="outline"
             size="lg"
             className="sm:shrink-0"
-            onClick={() => setIsUsedToolsOpen(true)}
+            onClick={() => void openUsedTools()}
           >
             <Wrench data-icon="inline-start" />
             Buscar herramienta en uso
           </Button>
         </div>
 
-        {filteredMechanics.length > 0 ? (
+        {isLoading ? (
+          <Card className="border-dashed">
+            <CardContent className="py-8 text-center text-sm text-muted-foreground">
+              Cargando mecánicos...
+            </CardContent>
+          </Card>
+        ) : filteredMechanics.length > 0 ? (
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
-            {filteredMechanics.map((mechanic) => {
-              const activeLoans = loans[mechanic.id]?.length ?? 0
+            {filteredMechanics.map((mechanic, index) => {
+              const activeLoans = Number(mechanic.prestamos_activos ?? 0)
+              const estilo = estiloTarjetaMecanico(index)
+              const puedePrestar = mechanic.estado === MECANICO_ACTIVO
+
               return (
                 <Card
                   key={mechanic.id}
-                  className={`border-t-4 transition-shadow hover:shadow-md ${mechanic.accent}`}
+                  className={`border-t-4 transition-shadow hover:shadow-md ${estilo.accent}`}
                 >
                   <CardHeader>
-                    <div
-                      className={`flex size-11 items-center justify-center rounded-xl text-sm font-semibold ${mechanic.badge}`}
-                    >
-                      {mechanic.initials}
-                    </div>
+                    {mechanic.imagen ? (
+                      <img
+                        src={mechanic.imagen}
+                        alt=""
+                        className="size-11 rounded-xl object-cover"
+                      />
+                    ) : (
+                      <div
+                        className={`flex size-11 items-center justify-center rounded-xl text-sm font-semibold ${estilo.badge}`}
+                      >
+                        {getInicialesMecanico(mechanic)}
+                      </div>
+                    )}
                     <CardAction>
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-medium">
                         <span className="size-1.5 rounded-full bg-emerald-500" />
@@ -168,15 +320,16 @@ export const PuntoPrestamos = () => {
                   </CardHeader>
 
                   <CardContent className="space-y-1">
-                    <CardTitle>{mechanic.name}</CardTitle>
-                    <CardDescription>{mechanic.area}</CardDescription>
+                    <CardTitle>{mechanic.nombre_completo}</CardTitle>
+                    <CardDescription>{mechanic.cargo}</CardDescription>
                   </CardContent>
 
                   <CardFooter className="grid grid-cols-2 gap-2">
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => openAddLoan(mechanic.id)}
+                      disabled={!puedePrestar}
+                      onClick={() => void openAddLoan(mechanic.id)}
                     >
                       <Plus data-icon="inline-start" />
                       Añadir préstamo
@@ -184,7 +337,7 @@ export const PuntoPrestamos = () => {
                     <Button
                       variant="secondary"
                       size="sm"
-                      onClick={() => setViewMechanicId(mechanic.id)}
+                      onClick={() => openViewLoans(mechanic.id)}
                     >
                       <Eye data-icon="inline-start" />
                       Ver préstamos
@@ -199,7 +352,9 @@ export const PuntoPrestamos = () => {
             <CardContent className="py-8 text-center">
               <CardTitle>No se encontraron mecánicos</CardTitle>
               <CardDescription className="mt-1">
-                Intenta realizar la búsqueda con otro nombre.
+                {search.trim()
+                  ? "Intenta realizar la búsqueda con otro nombre."
+                  : "Registra mecánicos activos para comenzar a prestar unidades."}
               </CardDescription>
             </CardContent>
           </Card>
@@ -209,6 +364,8 @@ export const PuntoPrestamos = () => {
       <ModalBuscarHerramientaEnUso
         open={isUsedToolsOpen}
         usedTools={usedTools}
+        isLoading={isLoadingUsed}
+        error={usedError}
         onOpenChange={setIsUsedToolsOpen}
       />
 
@@ -216,29 +373,47 @@ export const PuntoPrestamos = () => {
         open={viewMechanicId !== null}
         mechanic={viewMechanic}
         loans={viewLoans}
-        tools={tools}
+        isLoading={isLoadingView}
+        returningId={returningId}
+        isReturningAll={isReturningAll}
+        error={viewError}
+        canAdd={viewMechanic?.estado === MECANICO_ACTIVO}
         onOpenChange={(open) => {
-          if (!open) setViewMechanicId(null)
+          if (!open) {
+            setViewMechanicId(null)
+            setViewLoans([])
+            setViewError("")
+          }
         }}
         onAddTool={() => {
-          if (viewMechanicId) openAddLoan(viewMechanicId)
+          if (viewMechanicId) void openAddLoan(viewMechanicId)
         }}
-        onReturnTool={(toolId) => {
-          if (viewMechanicId) returnTool(viewMechanicId, toolId)
+        onReturnTool={(detalleId) => {
+          void handleReturnTool(detalleId)
         }}
         onReturnAll={() => {
-          if (viewMechanicId) returnAllTools(viewMechanicId)
+          void handleReturnAll()
         }}
       />
 
       <ModalAgregarPrestamo
         open={addMechanicId !== null}
         mechanic={addMechanic}
-        availableTools={availableTools}
+        availableUnits={availableUnits}
+        isLoading={isLoadingUnits}
+        isSubmitting={isSavingLoan}
+        error={addError}
         onOpenChange={(open) => {
-          if (!open) setAddMechanicId(null)
+          if (!open && isSavingLoan) return
+          if (!open) {
+            setAddMechanicId(null)
+            setAvailableUnits([])
+            setAddError("")
+          }
         }}
-        onSubmit={addSelectedTools}
+        onSubmit={(unidadIds) => {
+          void handleAddLoan(unidadIds)
+        }}
       />
     </div>
   )
