@@ -4,14 +4,29 @@ export const MECANICO_ESTADO_ELIMINADO = 0
 export const MECANICO_ESTADO_ACTIVO = 1
 export const MECANICO_ESTADO_FUERA_DE_SERVICIO = 2
 
+export const COLORES_MECANICO = [
+  { value: "rojo", label: "Rojo", muestra: "bg-red-500" },
+  { value: "amarillo", label: "Amarillo", muestra: "bg-yellow-400" },
+  { value: "verde_claro", label: "Verde claro", muestra: "bg-lime-400" },
+  { value: "verde_oscuro", label: "Verde oscuro", muestra: "bg-emerald-700" },
+  { value: "celeste", label: "Celeste", muestra: "bg-sky-400" },
+  { value: "azul", label: "Azul", muestra: "bg-blue-600" },
+  { value: "blanco", label: "Blanco", muestra: "border bg-white" },
+  { value: "naranja", label: "Naranja", muestra: "bg-orange-500" },
+] as const
+
+export type ColorMecanico = (typeof COLORES_MECANICO)[number]["value"]
+
 export type Mecanico = {
   id: string
   nombre: string
   apellido: string
+  apodo: string | null
   nombre_completo: string
-  nro_licencia: string
+  nro_licencia: string | null
   cargo: string
   telefono: string | null
+  color: ColorMecanico | null
   imagen: string | null
   estado: number
   usuario_id: string
@@ -20,9 +35,11 @@ export type Mecanico = {
 export type MecanicoFormValues = {
   nombre: string
   apellido: string
+  apodo: string
   nro_licencia: string
   cargo: string
   telefono: string
+  color: ColorMecanico
   imagen?: File | null
   eliminar_imagen?: boolean
 }
@@ -101,9 +118,11 @@ function toFormData(values: MecanicoFormValues) {
 
   data.append("nombre", values.nombre)
   data.append("apellido", values.apellido)
+  data.append("apodo", values.apodo)
   data.append("nro_licencia", values.nro_licencia)
   data.append("cargo", values.cargo)
   data.append("telefono", values.telefono)
+  data.append("color", values.color)
 
   if (values.imagen) {
     data.append("imagen", values.imagen)

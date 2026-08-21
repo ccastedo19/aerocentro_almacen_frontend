@@ -195,7 +195,7 @@ export function ModalUsuario({
         >
           {shownFormError ? (
             <div
-              className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive mb-0"
               role="alert"
             >
               {shownFormError}
@@ -289,7 +289,7 @@ export function ModalUsuario({
               </SelectContent>
             </Select>
             {shownErrors.rol_id ? (
-              <p className="text-sm text-destructive">{shownErrors.rol_id}</p>
+              <p className="text-sm text-destructive mb-0">{shownErrors.rol_id}</p>
             ) : null}
           </div>
 
@@ -373,14 +373,14 @@ function Field({
         id={id}
         type={type}
         autoComplete={autoComplete}
-        className="h-10"
+        className="h-9 mb-0.5"
         placeholder={placeholder}
         value={value}
         disabled={disabled}
         aria-invalid={Boolean(error)}
         onChange={(event) => onChange(event.target.value)}
       />
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {error ? <p className="text-sm text-destructive mb-0">{error}</p> : null}
     </div>
   )
 }
@@ -416,12 +416,12 @@ function PasswordField({
           </span>
         ) : null}
       </label>
-      <div className="relative">
+      <div className="relative mb-0.5">
         <Input
           id={id}
           type={showPassword ? "text" : "password"}
           autoComplete="new-password"
-          className="h-10 pr-10"
+          className="h-9 pr-10"
           placeholder={optional ? "Sin cambios" : "Mínimo 8 caracteres"}
           value={value}
           disabled={disabled}
@@ -440,7 +440,7 @@ function PasswordField({
           {showPassword ? <EyeOff /> : <Eye />}
         </Button>
       </div>
-      {error ? <p className="text-sm text-destructive">{error}</p> : null}
+      {error ? <p className="text-sm text-destructive mb-0">{error}</p> : null}
     </div>
   )
 }

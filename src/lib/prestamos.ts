@@ -1,4 +1,5 @@
 import { api } from "@/lib/api"
+import type { ColorMecanico } from "@/lib/mecanicos"
 
 export type RelacionNombre = {
   id: string
@@ -9,9 +10,11 @@ export type MecanicoPunto = {
   id: string
   nombre: string
   apellido: string
+  apodo: string | null
   nombre_completo: string
   cargo: string
   imagen: string | null
+  color: ColorMecanico | null
   estado: number
   prestamos_activos: number
 }
@@ -36,7 +39,7 @@ export type DetallePrestamoActivo = {
     fecha_prestamo: string
     mecanico?: Pick<
       MecanicoPunto,
-      "id" | "nombre" | "apellido" | "nombre_completo" | "cargo" | "imagen" | "estado"
+      "id" | "nombre" | "apellido" | "apodo" | "nombre_completo" | "cargo" | "imagen" | "color" | "estado"
     >
   } | null
   unidad?: UnidadPrestamo | null
@@ -54,35 +57,47 @@ export type PrestamoEnUso = {
   mechanicArea: string
 }
 
-const ESTILOS_TARJETA = [
-  {
-    accent: "border-blue-500",
-    badge: "bg-blue-500/15 text-blue-700 dark:text-blue-300",
+const ESTILOS_TARJETA: Record<ColorMecanico, { accent: string; badge: string }> = {
+  rojo: {
+    accent: "border-red-500",
+    badge: "bg-red-500/15 text-red-700 dark:text-red-300",
   },
-  {
-    accent: "border-emerald-500",
-    badge: "bg-emerald-500/15 text-emerald-700 dark:text-emerald-300",
+  amarillo: {
+    accent: "border-yellow-400",
+    badge: "bg-yellow-400/20 text-yellow-800 dark:text-yellow-200",
   },
-  {
-    accent: "border-amber-500",
-    badge: "bg-amber-500/15 text-amber-700 dark:text-amber-300",
+  verde_claro: {
+    accent: "border-lime-400",
+    badge: "bg-lime-400/20 text-lime-800 dark:text-lime-200",
   },
-  {
-    accent: "border-violet-500",
-    badge: "bg-violet-500/15 text-violet-700 dark:text-violet-300",
+  verde_oscuro: {
+    accent: "border-emerald-700",
+    badge: "bg-emerald-700/15 text-emerald-800 dark:text-emerald-300",
   },
-  {
-    accent: "border-rose-500",
-    badge: "bg-rose-500/15 text-rose-700 dark:text-rose-300",
+  celeste: {
+    accent: "border-sky-400",
+    badge: "bg-sky-400/20 text-sky-800 dark:text-sky-200",
   },
-  {
-    accent: "border-cyan-500",
-    badge: "bg-cyan-500/15 text-cyan-700 dark:text-cyan-300",
+  azul: {
+    accent: "border-blue-600",
+    badge: "bg-blue-600/15 text-blue-700 dark:text-blue-300",
   },
-] as const
+  blanco: {
+    accent: "border-zinc-200 dark:border-white",
+    badge: "border bg-white text-zinc-700 dark:bg-white dark:text-zinc-900",
+  },
+  naranja: {
+    accent: "border-orange-500",
+    badge: "bg-orange-500/15 text-orange-700 dark:text-orange-300",
+  },
+}
 
-export function estiloTarjetaMecanico(index: number) {
-  return ESTILOS_TARJETA[index % ESTILOS_TARJETA.length]
+const COLORES_FALLBACK = Object.keys(ESTILOS_TARJETA) as ColorMecanico[]
+
+export function estiloTarjetaMecanico(color: ColorMecanico | null, index: number) {
+  const colorElegido = color ?? COLORES_FALLBACK[index % COLORES_FALLBACK.length]
+
+  return ESTILOS_TARJETA[colorElegido]
 }
 
 export function nombreUnidad(unidad?: UnidadPrestamo | null) {

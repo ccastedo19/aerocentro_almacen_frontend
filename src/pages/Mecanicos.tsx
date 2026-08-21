@@ -20,6 +20,11 @@ import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/ui/data-table"
 import { type DataTableFeatures } from "@/components/ui/data-table-features"
 import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -60,6 +65,7 @@ export const Mecanicos = () => {
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingItem, setEditingItem] = useState<Mecanico | null>(null)
   const [deletingItem, setDeletingItem] = useState<Mecanico | null>(null)
+  const [imagePreviewItem, setImagePreviewItem] = useState<Mecanico | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [formError, setFormError] = useState("")
@@ -139,25 +145,40 @@ export const Mecanicos = () => {
 
           return (
             <div className="flex items-center gap-3">
-              <Avatar className="size-9 rounded-lg after:rounded-lg">
-                {mecanico.imagen ? (
-                  <AvatarImage
-                    src={mecanico.imagen}
-                    alt={mecanico.nombre_completo}
-                  />
-                ) : null}
-                <AvatarFallback className="rounded-lg text-xs">
-                  {getInicialesMecanico(mecanico)}
-                </AvatarFallback>
-              </Avatar>
+              <button
+                type="button"
+                className="rounded-lg outline-none enabled:cursor-zoom-in enabled:focus-visible:ring-2 enabled:focus-visible:ring-ring enabled:focus-visible:ring-offset-2"
+                disabled={!mecanico.imagen}
+                aria-label={mecanico.imagen ? `Ampliar foto de ${mecanico.nombre_completo}` : undefined}
+                onClick={() => setImagePreviewItem(mecanico)}
+              >
+                <Avatar className="size-9 overflow-hidden rounded-lg after:rounded-lg">
+                  {mecanico.imagen ? (
+                    <AvatarImage
+                      src={mecanico.imagen}
+                      alt={mecanico.nombre_completo}
+                      className="rounded-lg"
+                    />
+                  ) : null}
+                  <AvatarFallback className="rounded-lg text-xs">
+                    {getInicialesMecanico(mecanico)}
+                  </AvatarFallback>
+                </Avatar>
+              </button>
               <span className="font-medium">{mecanico.nombre_completo}</span>
             </div>
           )
         },
       }),
+      columnHelper.accessor("apodo", {
+        header: "Apodo",
+        sortFn: "text",
+        cell: ({ getValue }) => getValue() || "—",
+      }),
       columnHelper.accessor("nro_licencia", {
         header: "Licencia",
         sortFn: "text",
+        cell: ({ getValue }) => getValue() || "—",
       }),
       columnHelper.accessor("cargo", {
         header: "Cargo",
@@ -195,7 +216,7 @@ export const Mecanicos = () => {
               >
                 <MoreHorizontal />
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
+              <DropdownMenuContent align="end" className="w-full">
                 <DropdownMenuItem
                   onClick={() => {
                     setEditingItem(mecanico)
@@ -261,9 +282,11 @@ export const Mecanicos = () => {
         setFieldErrors({
           nombre: error.errors.nombre?.[0],
           apellido: error.errors.apellido?.[0],
+          apodo: error.errors.apodo?.[0],
           nro_licencia: error.errors.nro_licencia?.[0],
           cargo: error.errors.cargo?.[0],
           telefono: error.errors.telefono?.[0],
+          color: error.errors.color?.[0],
           imagen: error.errors.imagen?.[0],
         })
         setFormError(error.message)
@@ -325,8 +348,8 @@ export const Mecanicos = () => {
               <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 id="mecanico-search"
-                className="h-10 pl-9"
-                placeholder="Buscar por nombre, licencia, cargo o teléfono..."
+                className="h-9 pl-9"
+                placeholder="Buscar por nombre, apodo, licencia, cargo o teléfono..."
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
               />
@@ -356,7 +379,7 @@ export const Mecanicos = () => {
 
           <Button
             size="lg"
-            className="h-10 sm:shrink-0"
+            className="h-9 sm:shrink-0"
             onClick={() => {
               setEditingItem(null)
               setFormError("")
@@ -388,7 +411,7 @@ export const Mecanicos = () => {
             }
             emptyDescription={
               hasSearch
-                ? "Intenta con otro nombre, licencia o cargo."
+                ? "Intenta con otro nombre, apodo, licencia o cargo."
                 : "Agrega el primer mecánico para comenzar."
             }
           />
@@ -426,6 +449,26 @@ export const Mecanicos = () => {
         }}
         onConfirm={handleDelete}
       />
+
+      <Dialog
+        open={imagePreviewItem !== null}
+        onOpenChange={(open) => {
+          if (!open) setImagePreviewItem(null)
+        }}
+      >
+        <DialogContent className="max-w-[calc(100%-2rem)] p-2 sm:max-w-3xl">
+          <DialogTitle className="sr-only">
+            Foto de {imagePreviewItem?.nombre_completo}
+          </DialogTitle>
+          {imagePreviewItem?.imagen ? (
+            <img
+              src={imagePreviewItem.imagen}
+              alt={`Foto ampliada de ${imagePreviewItem.nombre_completo}`}
+              className="max-h-[80vh] w-full rounded-lg object-contain"
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
