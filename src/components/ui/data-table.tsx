@@ -114,7 +114,7 @@ export function DataTable<TData extends RowData>({
                         <Button
                           type="button"
                           variant="ghost"
-                          className="-ml-2 h-8 px-2 font-medium"
+                          className="-ml-2 h-8 px-2 text-[13px] font-semibold"
                           aria-label={
                             sorted === "asc"
                               ? `${title}: orden ascendente. Clic para ordenar descendente.`

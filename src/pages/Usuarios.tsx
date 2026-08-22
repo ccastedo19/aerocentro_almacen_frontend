@@ -325,7 +325,7 @@ export const Usuarios = () => {
               <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
                 id="usuario-search"
-                className="h-10 pl-9"
+                className="h-9 pl-9"
                 placeholder="Buscar por nombre, usuario, correo o rol..."
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
@@ -356,7 +356,7 @@ export const Usuarios = () => {
 
           <Button
             size="lg"
-            className="h-10 sm:shrink-0"
+            className="h-9 sm:shrink-0"
             onClick={() => {
               setEditingItem(null)
               setFormError("")

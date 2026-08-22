@@ -93,7 +93,7 @@ export const PuntoPrestamos = () => {
     if (!query) return mecanicos
 
     return mecanicos.filter((mecanico) =>
-      `${mecanico.nombre_completo} ${mecanico.cargo}`
+      `${mecanico.nombre_completo} ${mecanico.apodo ?? ""} ${mecanico.cargo}`
         .toLocaleLowerCase()
         .includes(query),
     )
@@ -289,7 +289,7 @@ export const PuntoPrestamos = () => {
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {filteredMechanics.map((mechanic, index) => {
               const activeLoans = Number(mechanic.prestamos_activos ?? 0)
-              const estilo = estiloTarjetaMecanico(index)
+              const estilo = estiloTarjetaMecanico(mechanic.color, index)
               const puedePrestar = mechanic.estado === MECANICO_ACTIVO
 
               return (
@@ -321,6 +321,9 @@ export const PuntoPrestamos = () => {
 
                   <CardContent className="space-y-1">
                     <CardTitle>{mechanic.nombre_completo}</CardTitle>
+                    {mechanic.apodo ? (
+                      <p className="text-sm font-medium">“{mechanic.apodo}”</p>
+                    ) : null}
                     <CardDescription>{mechanic.cargo}</CardDescription>
                   </CardContent>
 

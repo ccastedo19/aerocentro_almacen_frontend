@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -13,7 +12,9 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Input } from "@/components/ui/input"
 import {
+  COLORES_MECANICO,
   getInicialesMecanico,
+  type ColorMecanico,
   type Mecanico,
   type MecanicoFormValues,
 } from "@/lib/mecanicos"
@@ -24,9 +25,11 @@ const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp"]
 export type MecanicoFieldErrors = {
   nombre?: string
   apellido?: string
+  apodo?: string
   nro_licencia?: string
   cargo?: string
   telefono?: string
+  color?: string
   imagen?: string
 }
 
@@ -62,11 +65,14 @@ export function ModalMecanico({
 
   const [nombre, setNombre] = useState("")
   const [apellido, setApellido] = useState("")
+  const [apodo, setApodo] = useState("")
   const [nroLicencia, setNroLicencia] = useState("")
   const [cargo, setCargo] = useState("")
   const [telefono, setTelefono] = useState("")
+  const [color, setColor] = useState<ColorMecanico>("azul")
   const [imagen, setImagen] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
+  const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false)
   const [eliminarImagen, setEliminarImagen] = useState(false)
   const [localErrors, setLocalErrors] = useState<MecanicoFieldErrors>({})
 
@@ -76,11 +82,14 @@ export function ModalMecanico({
     revokeObjectUrl()
     setNombre(item?.nombre ?? "")
     setApellido(item?.apellido ?? "")
+    setApodo(item?.apodo ?? "")
     setNroLicencia(item?.nro_licencia ?? "")
     setCargo(item?.cargo ?? "")
     setTelefono(item?.telefono ?? "")
+    setColor(item?.color ?? "azul")
     setImagen(null)
     setPreviewUrl(item?.imagen ?? null)
+    setIsImagePreviewOpen(false)
     setEliminarImagen(false)
     setLocalErrors({})
 
@@ -161,9 +170,6 @@ export function ModalMecanico({
 
     if (!nombreValue) nextErrors.nombre = "El nombre es obligatorio."
     if (!apellidoValue) nextErrors.apellido = "El apellido es obligatorio."
-    if (!licenciaValue) {
-      nextErrors.nro_licencia = "El número de licencia es obligatorio."
-    }
     if (!cargoValue) nextErrors.cargo = "El cargo es obligatorio."
 
     if (Object.keys(nextErrors).length > 0) {
@@ -174,9 +180,11 @@ export function ModalMecanico({
     onSubmit({
       nombre: nombreValue,
       apellido: apellidoValue,
+      apodo: apodo.trim(),
       nro_licencia: licenciaValue,
       cargo: cargoValue,
       telefono: telefono.trim(),
+      color,
       imagen,
       eliminar_imagen: isEditing && eliminarImagen && !imagen,
     })
@@ -185,9 +193,11 @@ export function ModalMecanico({
   const shownErrors: MecanicoFieldErrors = {
     nombre: localErrors.nombre || fieldErrors.nombre,
     apellido: localErrors.apellido || fieldErrors.apellido,
+    apodo: localErrors.apodo || fieldErrors.apodo,
     nro_licencia: localErrors.nro_licencia || fieldErrors.nro_licencia,
     cargo: localErrors.cargo || fieldErrors.cargo,
     telefono: localErrors.telefono || fieldErrors.telefono,
+    color: localErrors.color || fieldErrors.color,
     imagen: localErrors.imagen || fieldErrors.imagen,
   }
 
@@ -201,26 +211,23 @@ export function ModalMecanico({
   })
 
   return (
-    <Dialog
-      open={open}
-      onOpenChange={(nextOpen) => {
-        if (!nextOpen) {
-          closeModal()
-          return
-        }
+    <>
+      <Dialog
+        open={open}
+        onOpenChange={(nextOpen) => {
+          if (!nextOpen) {
+            closeModal()
+            return
+          }
 
-        onOpenChange(true)
-      }}
-    >
-      <DialogContent className="sm:max-w-lg">
+          onOpenChange(true)
+        }}
+      >
+        <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? "Editar mecánico" : "Agregar mecánico"}
           </DialogTitle>
-          <DialogDescription>
-            Completa los datos del mecánico. La foto y el teléfono son
-            opcionales.
-          </DialogDescription>
         </DialogHeader>
 
         <form
@@ -239,14 +246,26 @@ export function ModalMecanico({
           ) : null}
 
           <div className="flex items-center gap-4">
-            <Avatar className="size-16 rounded-xl after:rounded-xl">
-              {previewUrl ? (
-                <AvatarImage src={previewUrl} alt="Foto del mecánico" />
-              ) : null}
-              <AvatarFallback className="rounded-xl text-base">
-                {initials}
-              </AvatarFallback>
-            </Avatar>
+            <button
+              type="button"
+              className="rounded-xl outline-none enabled:cursor-zoom-in enabled:focus-visible:ring-2 enabled:focus-visible:ring-ring enabled:focus-visible:ring-offset-2"
+              disabled={!isEditing || !previewUrl}
+              aria-label={isEditing && previewUrl ? "Ampliar foto del mecánico" : undefined}
+              onClick={() => setIsImagePreviewOpen(true)}
+            >
+              <Avatar className="size-16 overflow-hidden rounded-xl after:rounded-xl">
+                {previewUrl ? (
+                  <AvatarImage
+                    src={previewUrl}
+                    alt="Foto del mecánico"
+                    className="rounded-xl"
+                  />
+                ) : null}
+                <AvatarFallback className="rounded-xl text-base">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
+            </button>
 
             <div className="min-w-0 flex-1 space-y-2">
               <input
@@ -316,8 +335,22 @@ export function ModalMecanico({
               }}
             />
             <Field
+              id="mecanico-apodo"
+              label="Apodo"
+              optional
+              placeholder="Ej. El Gato"
+              value={apodo}
+              disabled={isSubmitting}
+              error={shownErrors.apodo}
+              onChange={(value) => {
+                setApodo(value)
+                clearFieldError("apodo")
+              }}
+            />
+            <Field
               id="mecanico-licencia"
               label="N° de licencia"
+              optional
               placeholder="Ej. LIC-001"
               value={nroLicencia}
               disabled={isSubmitting}
@@ -354,6 +387,39 @@ export function ModalMecanico({
               clearFieldError("telefono")
             }}
           />
+
+          <fieldset className="space-y-2">
+            <legend className="text-sm font-medium">Color de identificación</legend>
+            <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
+              {COLORES_MECANICO.map((opcion) => (
+                <button
+                  key={opcion.value}
+                  type="button"
+                  className={`flex items-center justify-center rounded-lg border p-2 transition-colors ${
+                    color === opcion.value
+                      ? "border-foreground bg-muted"
+                      : "border-transparent hover:bg-muted/60"
+                  }`}
+                  disabled={isSubmitting}
+                  aria-pressed={color === opcion.value}
+                  aria-label={opcion.label}
+                  title={opcion.label}
+                  onClick={() => {
+                    setColor(opcion.value)
+                    clearFieldError("color")
+                  }}
+                >
+                  <span
+                    className={`size-6 rounded-full ${opcion.muestra}`}
+                    aria-hidden="true"
+                  />
+                </button>
+              ))}
+            </div>
+            {shownErrors.color ? (
+              <p className="text-sm text-destructive">{shownErrors.color}</p>
+            ) : null}
+          </fieldset>
         </form>
 
         <DialogFooter>
@@ -369,8 +435,22 @@ export function ModalMecanico({
             {isSubmitting ? "Guardando..." : "Guardar"}
           </Button>
         </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={isImagePreviewOpen} onOpenChange={setIsImagePreviewOpen}>
+        <DialogContent className="max-w-[calc(100%-2rem)] p-2 sm:max-w-3xl">
+          <DialogTitle className="sr-only">Foto del mecánico</DialogTitle>
+          {previewUrl ? (
+            <img
+              src={previewUrl}
+              alt={`Foto ampliada de ${item?.nombre_completo ?? "mecánico"}`}
+              className="max-h-[80vh] w-full rounded-lg object-contain"
+            />
+          ) : null}
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }
 
@@ -405,7 +485,7 @@ function Field({
       </label>
       <Input
         id={id}
-        className="h-10"
+        className="h-9"
         placeholder={placeholder}
         value={value}
         disabled={disabled}
