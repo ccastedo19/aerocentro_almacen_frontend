@@ -25,14 +25,29 @@ export async function listarCatalogo(path: string) {
   return respuesta.data
 }
 
+type CrearCatalogoResponse = {
+  message: string
+  categoria?: CatalogoItem
+  marca?: CatalogoItem
+  ubicacion?: CatalogoItem
+}
+
 export async function crearCatalogo(path: string, values: CatalogoFormValues) {
-  await api(`${path}`, {
+  const respuesta = await api<CrearCatalogoResponse>(`${path}`, {
     method: "POST",
     body: {
       nombre: values.nombre,
       descripcion: values.descripcion || null,
     },
   })
+
+  const item = respuesta.categoria ?? respuesta.marca ?? respuesta.ubicacion
+
+  if (!item) {
+    throw new Error("No se pudo crear el registro.")
+  }
+
+  return item
 }
 
 export async function actualizarCatalogo(

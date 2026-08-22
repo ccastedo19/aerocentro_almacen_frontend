@@ -4,6 +4,7 @@ import { Eye, Plus, Search, Wrench } from "lucide-react"
 import { ModalAgregarPrestamo } from "@/components/modal/ModalAgregarPrestamo"
 import { ModalBuscarHerramientaEnUso } from "@/components/modal/ModalBuscarHerramientaEnUso"
 import { ModalVerPrestamos } from "@/components/modal/ModalVerPrestamos"
+import { AlertError } from "@/components/ui/alert-error"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -168,6 +169,10 @@ export const PuntoPrestamos = () => {
     if (viewMechanicId) {
       await loadViewLoans(viewMechanicId)
     }
+
+    if (isUsedToolsOpen) {
+      setUsedTools(await listarHerramientasEnUso())
+    }
   }
 
   const handleAddLoan = async (unidadIds: string[]) => {
@@ -194,19 +199,32 @@ export const PuntoPrestamos = () => {
     }
   }
 
-  const handleReturnTool = async (detalleId: string) => {
+  const handleReturnTool = async (
+    detalleId: string,
+    origen: "view" | "used" = "view",
+  ) => {
     setReturningId(detalleId)
-    setViewError("")
+
+    if (origen === "used") {
+      setUsedError("")
+    } else {
+      setViewError("")
+    }
 
     try {
       await devolverUnidad(detalleId)
       await refreshAfterChange()
     } catch (error) {
-      setViewError(
+      const message =
         error instanceof ApiError
           ? error.errors.detalle?.[0] || error.message
-          : "No se pudo devolver la unidad.",
-      )
+          : "No se pudo devolver la unidad."
+
+      if (origen === "used") {
+        setUsedError(message)
+      } else {
+        setViewError(message)
+      }
     } finally {
       setReturningId(null)
     }
@@ -245,12 +263,7 @@ export const PuntoPrestamos = () => {
 
       <section className="space-y-4">
         {pageError ? (
-          <div
-            className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-            role="alert"
-          >
-            {pageError}
-          </div>
+          <AlertError onClose={() => setPageError("")}>{pageError}</AlertError>
         ) : null}
 
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -261,7 +274,7 @@ export const PuntoPrestamos = () => {
             <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               id="mechanic-search"
-              className="h-10 pl-9"
+              className="h-9 pl-9"
               placeholder="Buscar mecánico por nombre..."
               value={search}
               onChange={(event) => setSearch(event.target.value)}
@@ -295,7 +308,7 @@ export const PuntoPrestamos = () => {
               return (
                 <Card
                   key={mechanic.id}
-                  className={`border-t-4 transition-shadow hover:shadow-md ${estilo.accent}`}
+                  className={`h-full border-t-4 transition-shadow hover:shadow-md ${estilo.accent}`}
                 >
                   <CardHeader>
                     {mechanic.imagen ? (
@@ -314,32 +327,39 @@ export const PuntoPrestamos = () => {
                     <CardAction>
                       <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-medium">
                         <span className="size-1.5 rounded-full bg-emerald-500" />
-                        {activeLoans} activos
+                        {activeLoans}{" "}
+                        {activeLoans === 1
+                          ? "Préstamo"
+                          : "Préstamos"}
                       </span>
                     </CardAction>
                   </CardHeader>
 
-                  <CardContent className="space-y-1">
-                    <CardTitle>{mechanic.nombre_completo}</CardTitle>
-                    {mechanic.apodo ? (
-                      <p className="text-sm font-medium">“{mechanic.apodo}”</p>
-                    ) : null}
-                    <CardDescription>{mechanic.cargo}</CardDescription>
+                  <CardContent className="min-h-[4.75rem] space-y-1">
+                    <CardTitle className="line-clamp-1">
+                      {mechanic.nombre_completo}
+                    </CardTitle>
+                    <p className="h-5 truncate text-sm font-medium">
+                      {mechanic.apodo ? `“${mechanic.apodo}”` : "\u00a0"}
+                    </p>
+                    <CardDescription className="line-clamp-1">
+                      {mechanic.cargo}
+                    </CardDescription>
                   </CardContent>
 
-                  <CardFooter className="grid grid-cols-2 gap-2">
+                  <CardFooter className="mt-auto grid grid-cols-2 gap-2">
                     <Button
+                      className="h8"
                       variant="outline"
-                      size="sm"
                       disabled={!puedePrestar}
                       onClick={() => void openAddLoan(mechanic.id)}
                     >
                       <Plus data-icon="inline-start" />
-                      Añadir préstamo
+                      Nuevo préstamo
                     </Button>
                     <Button
-                      variant="secondary"
-                      size="sm"
+                      className="h-8"
+                      variant="outline"
                       onClick={() => openViewLoans(mechanic.id)}
                     >
                       <Eye data-icon="inline-start" />
@@ -368,8 +388,13 @@ export const PuntoPrestamos = () => {
         open={isUsedToolsOpen}
         usedTools={usedTools}
         isLoading={isLoadingUsed}
+        returningId={returningId}
         error={usedError}
         onOpenChange={setIsUsedToolsOpen}
+        onDismissError={() => setUsedError("")}
+        onReturnTool={(detalleId) => {
+          void handleReturnTool(detalleId, "used")
+        }}
       />
 
       <ModalVerPrestamos
@@ -381,6 +406,7 @@ export const PuntoPrestamos = () => {
         isReturningAll={isReturningAll}
         error={viewError}
         canAdd={viewMechanic?.estado === MECANICO_ACTIVO}
+        onDismissError={() => setViewError("")}
         onOpenChange={(open) => {
           if (!open) {
             setViewMechanicId(null)

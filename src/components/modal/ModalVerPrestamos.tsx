@@ -1,5 +1,6 @@
 import { Clock, PackageOpen, Plus, RotateCcw, Wrench } from "lucide-react"
 
+import { AlertError } from "@/components/ui/alert-error"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -27,6 +28,7 @@ type ModalVerPrestamosProps = {
   isReturningAll?: boolean
   error?: string
   canAdd?: boolean
+  onDismissError?: () => void
   onOpenChange: (open: boolean) => void
   onAddTool: () => void
   onReturnTool: (detalleId: string) => void
@@ -42,6 +44,7 @@ export function ModalVerPrestamos({
   isReturningAll = false,
   error = "",
   canAdd = true,
+  onDismissError,
   onOpenChange,
   onAddTool,
   onReturnTool,
@@ -63,12 +66,7 @@ export function ModalVerPrestamos({
         </DialogHeader>
 
         {error ? (
-          <div
-            className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-            role="alert"
-          >
-            {error}
-          </div>
+          <AlertError onClose={() => onDismissError?.()}>{error}</AlertError>
         ) : null}
 
         <div className="flex flex-col gap-3 border-y py-3 sm:flex-row sm:items-center sm:justify-between">

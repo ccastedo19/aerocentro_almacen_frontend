@@ -44,6 +44,11 @@ const routes: Record<
     parent: "Inventario",
   },
 
+  "/historial-prestamos": {
+    title: "Historial de Préstamos",
+    parent: "Reportes",
+  },
+
   "/mecanicos": {
     title: "Mecánicos",
     parent: "Personal",

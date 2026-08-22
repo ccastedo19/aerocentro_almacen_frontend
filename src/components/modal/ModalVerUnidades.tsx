@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react"
 
 import { type NamedOption } from "@/components/form/named-select"
+import { type CatalogoItem } from "@/lib/catalogo"
 import {
   BotonAgregarUnidad,
   UnidadCampos,
@@ -11,6 +12,7 @@ import {
   type UnidadCamposValues,
 } from "@/components/herramientas/unidad-editor"
 import { ModalConfirmarEliminar } from "@/components/modal/ModalConfirmarEliminar"
+import { AlertError } from "@/components/ui/alert-error"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -41,6 +43,8 @@ type ModalVerUnidadesProps = {
   ubicaciones: NamedOption[]
   onOpenChange: (open: boolean) => void
   onChanged: () => void
+  onCreatedMarca: (item: CatalogoItem) => void
+  onCreatedUbicacion: (item: CatalogoItem) => void
 }
 
 export function ModalVerUnidades({
@@ -50,6 +54,8 @@ export function ModalVerUnidades({
   ubicaciones,
   onOpenChange,
   onChanged,
+  onCreatedMarca,
+  onCreatedUbicacion,
 }: ModalVerUnidadesProps) {
   const [unidades, setUnidades] = useState<HerramientaUnidad[]>([])
   const [isLoading, setIsLoading] = useState(false)
@@ -96,7 +102,7 @@ export function ModalVerUnidades({
     setUnidadErrors({})
     setDeleteError("")
     void loadUnidades()
-  }, [herramienta, loadUnidades, marcas, open, ubicaciones])
+  }, [herramienta?.id, loadUnidades, open])
 
   const resetCampos = () => {
     setUnidadCampos(unidadCamposVacia(marcas, ubicaciones))
@@ -177,54 +183,45 @@ export function ModalVerUnidades({
 
           <div className="space-y-4">
             {pageError ? (
-              <div
-                className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-                role="alert"
-              >
-                {pageError}
-              </div>
+              <AlertError onClose={() => setPageError("")}>{pageError}</AlertError>
             ) : null}
 
-            {marcas.length === 0 || ubicaciones.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                Necesitas marcas y ubicaciones para agregar unidades.
+            <div className="space-y-3 rounded-xl border p-4">
+              <p className="text-sm font-medium">
+                {editingUnidad ? "Editar unidad" : "Agregar unidad"}
               </p>
-            ) : (
-              <div className="space-y-3 rounded-xl border p-4">
-                <p className="text-sm font-medium">
-                  {editingUnidad ? "Editar unidad" : "Agregar unidad"}
-                </p>
-                <UnidadCampos
-                  idPrefix="ver-unidad"
-                  values={unidadCampos}
-                  marcas={marcas}
-                  ubicaciones={ubicaciones}
-                  errors={unidadErrors}
+              <UnidadCampos
+                idPrefix="ver-unidad"
+                values={unidadCampos}
+                marcas={marcas}
+                ubicaciones={ubicaciones}
+                errors={unidadErrors}
+                disabled={isSaving}
+                onChange={(values) => {
+                  setUnidadCampos(values)
+                  setUnidadErrors({})
+                }}
+                onCreatedMarca={onCreatedMarca}
+                onCreatedUbicacion={onCreatedUbicacion}
+              />
+              <div className="flex flex-wrap gap-2">
+                <BotonAgregarUnidad
                   disabled={isSaving}
-                  onChange={(values) => {
-                    setUnidadCampos(values)
-                    setUnidadErrors({})
-                  }}
+                  isEditing={Boolean(editingUnidad)}
+                  onClick={() => void handleGuardarUnidad()}
                 />
-                <div className="flex flex-wrap gap-2">
-                  <BotonAgregarUnidad
+                {editingUnidad ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
                     disabled={isSaving}
-                    isEditing={Boolean(editingUnidad)}
-                    onClick={() => void handleGuardarUnidad()}
-                  />
-                  {editingUnidad ? (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      disabled={isSaving}
-                      onClick={resetCampos}
-                    >
-                      Cancelar edición
-                    </Button>
-                  ) : null}
-                </div>
+                    onClick={resetCampos}
+                  >
+                    Cancelar edición
+                  </Button>
+                ) : null}
               </div>
-            )}
+            </div>
 
             {isLoading ? (
               <p className="py-6 text-center text-sm text-muted-foreground">
@@ -251,9 +248,12 @@ export function ModalVerUnidades({
                   setUnidadCampos({
                     marca_id: unidad.marca_id,
                     ubicacion_id: unidad.ubicacion_id,
+                    requiere_calibracion: Boolean(
+                      unidad.fecha_calibracion || unidad.proxima_calibracion,
+                    ),
                     fecha_calibracion: toDateInput(unidad.fecha_calibracion),
                     proxima_calibracion: toDateInput(unidad.proxima_calibracion),
-                    observaciones: unidad.observaciones ?? "",
+                    observaciones: "",
                   })
                   setUnidadErrors({})
                 }}

@@ -17,6 +17,7 @@ import {
   type HerramientaFieldErrors,
 } from "@/components/modal/ModalHerramienta"
 import { ModalVerUnidades } from "@/components/modal/ModalVerUnidades"
+import { AlertError } from "@/components/ui/alert-error"
 import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/ui/data-table"
 import { type DataTableFeatures } from "@/components/ui/data-table-features"
@@ -51,6 +52,19 @@ import {
 } from "@/lib/herramientas"
 
 type EstadoFiltro = "todos" | "activo" | "inactivo"
+
+function insertarCatalogo(
+  setItems: (updater: (current: CatalogoItem[]) => CatalogoItem[]) => void,
+  item: CatalogoItem,
+) {
+  setItems((current) => {
+    if (current.some((row) => row.id === item.id)) return current
+
+    return [...current, item].sort((a, b) =>
+      a.nombre.localeCompare(b.nombre, "es"),
+    )
+  })
+}
 
 export const Herramientas = () => {
   const [items, setItems] = useState<Herramienta[]>([])
@@ -326,12 +340,7 @@ export const Herramientas = () => {
 
       <section className="space-y-4">
         {pageError ? (
-          <div
-            className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-            role="alert"
-          >
-            {pageError}
-          </div>
+          <AlertError onClose={() => setPageError("")}>{pageError}</AlertError>
         ) : null}
 
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -433,6 +442,9 @@ export const Herramientas = () => {
           if (!open) setEditingItem(null)
         }}
         onSubmit={handleSubmit}
+        onCreatedCategoria={(item) => insertarCatalogo(setCategorias, item)}
+        onCreatedMarca={(item) => insertarCatalogo(setMarcas, item)}
+        onCreatedUbicacion={(item) => insertarCatalogo(setUbicaciones, item)}
       />
 
       <ModalVerUnidades
@@ -446,6 +458,8 @@ export const Herramientas = () => {
         onChanged={() => {
           void loadItems()
         }}
+        onCreatedMarca={(item) => insertarCatalogo(setMarcas, item)}
+        onCreatedUbicacion={(item) => insertarCatalogo(setUbicaciones, item)}
       />
 
       <ModalConfirmarEliminar

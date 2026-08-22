@@ -12,6 +12,7 @@ import { Herramientas } from "@/pages/Herramientas";
 import { Categorias } from "@/pages/Categorias";
 import { Ubicaciones } from "@/pages/Ubicaciones";
 import { Marcas } from "@/pages/Marcas";
+import { HistorialPrestamos } from "@/pages/HistorialPrestamos";
 import { Mecanicos } from "@/pages/Mecanicos";
 
 const pages = [
@@ -21,6 +22,7 @@ const pages = [
   { path: "categorias", element: <Categorias /> },
   { path: "ubicaciones", element: <Ubicaciones /> },
   { path: "marcas", element: <Marcas /> },
+  { path: "historial-prestamos", element: <HistorialPrestamos /> },
   { path: "mecanicos", element: <Mecanicos /> },
 ];
 

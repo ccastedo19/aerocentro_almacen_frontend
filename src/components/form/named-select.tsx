@@ -5,6 +5,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { cn } from "@/lib/utils"
 
 export type NamedOption = {
   id: string
@@ -18,6 +19,7 @@ type NamedSelectProps = {
   placeholder: string
   disabled?: boolean
   error?: string
+  className?: string
   onChange: (value: string) => void
 }
 
@@ -28,6 +30,7 @@ export function NamedSelect({
   placeholder,
   disabled,
   error,
+  className,
   onChange,
 }: NamedSelectProps) {
   return (
@@ -45,7 +48,7 @@ export function NamedSelect({
       >
         <SelectTrigger
           id={id}
-          className="h-10 w-full"
+          className={cn("h-10 w-full", className)}
           disabled={disabled}
           aria-invalid={Boolean(error)}
         >

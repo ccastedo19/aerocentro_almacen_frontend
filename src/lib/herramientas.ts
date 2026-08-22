@@ -48,6 +48,7 @@ export type UnidadBorrador = {
   key: string
   marca_id: string
   ubicacion_id: string
+  requiere_calibracion?: boolean
   fecha_calibracion: string
   proxima_calibracion: string
   observaciones: string
@@ -112,14 +113,14 @@ export async function crearHerramienta(values: HerramientaFormValues) {
     method: "POST",
     body: {
       nombre: values.nombre,
-      descripcion: values.descripcion || null,
+      descripcion: null,
       categoria_id: values.categoria_id,
       unidades: (values.unidades ?? []).map((unidad) => ({
         marca_id: unidad.marca_id,
         ubicacion_id: unidad.ubicacion_id,
         fecha_calibracion: unidad.fecha_calibracion || null,
         proxima_calibracion: unidad.proxima_calibracion || null,
-        observaciones: unidad.observaciones || null,
+        observaciones: null,
       })),
     },
   })
@@ -135,7 +136,7 @@ export async function actualizarHerramienta(
     method: "PUT",
     body: {
       nombre: values.nombre,
-      descripcion: values.descripcion || null,
+      descripcion: null,
       categoria_id: values.categoria_id,
     },
   })
@@ -198,7 +199,7 @@ export async function actualizarUnidad(id: string, values: UnidadFormValues) {
         ubicacion_id: values.ubicacion_id,
         fecha_calibracion: values.fecha_calibracion || null,
         proxima_calibracion: values.proxima_calibracion || null,
-        observaciones: values.observaciones || null,
+        observaciones: null,
       },
     },
   )
@@ -217,6 +218,6 @@ function unidadPayload(values: UnidadFormValues) {
     ubicacion_id: values.ubicacion_id,
     fecha_calibracion: values.fecha_calibracion || null,
     proxima_calibracion: values.proxima_calibracion || null,
-    observaciones: values.observaciones || null,
+    observaciones: null,
   }
 }

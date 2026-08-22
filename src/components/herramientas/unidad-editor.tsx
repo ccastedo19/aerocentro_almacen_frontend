@@ -1,4 +1,6 @@
-import { NamedSelect, type NamedOption } from "@/components/form/named-select"
+import { CreatableNamedSelect } from "@/components/form/creatable-named-select"
+import { type NamedOption } from "@/components/form/named-select"
+import { type CatalogoItem } from "@/lib/catalogo"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -9,12 +11,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Textarea } from "@/components/ui/textarea"
+import { cn } from "@/lib/utils"
 import { Pencil, Plus, Trash2 } from "lucide-react"
 
 export type UnidadCamposValues = {
   marca_id: string
   ubicacion_id: string
+  requiere_calibracion: boolean
   fecha_calibracion: string
   proxima_calibracion: string
   observaciones: string
@@ -26,6 +29,7 @@ export function unidadCamposVacia(marcas: NamedOption[], ubicaciones: NamedOptio
   return {
     marca_id: marcas[0]?.id ?? "",
     ubicacion_id: ubicaciones[0]?.id ?? "",
+    requiere_calibracion: false,
     fecha_calibracion: "",
     proxima_calibracion: "",
     observaciones: "",
@@ -38,13 +42,23 @@ export function validarUnidadCampos(values: UnidadCamposValues): UnidadCamposErr
   if (!values.marca_id) errors.marca_id = "Selecciona una marca."
   if (!values.ubicacion_id) errors.ubicacion_id = "Selecciona una ubicación."
 
-  if (
-    values.fecha_calibracion &&
-    values.proxima_calibracion &&
-    values.proxima_calibracion < values.fecha_calibracion
-  ) {
-    errors.proxima_calibracion =
-      "La próxima calibración no puede ser anterior a la última."
+  if (values.requiere_calibracion) {
+    if (!values.fecha_calibracion) {
+      errors.fecha_calibracion = "La última calibración es obligatoria."
+    }
+
+    if (!values.proxima_calibracion) {
+      errors.proxima_calibracion = "La próxima calibración es obligatoria."
+    }
+
+    if (
+      values.fecha_calibracion &&
+      values.proxima_calibracion &&
+      values.proxima_calibracion < values.fecha_calibracion
+    ) {
+      errors.proxima_calibracion =
+        "La próxima calibración no puede ser anterior a la última."
+    }
   }
 
   return errors
@@ -58,6 +72,8 @@ type UnidadCamposProps = {
   errors: UnidadCamposErrors
   disabled?: boolean
   onChange: (values: UnidadCamposValues) => void
+  onCreatedMarca: (item: CatalogoItem) => void
+  onCreatedUbicacion: (item: CatalogoItem) => void
 }
 
 export function UnidadCampos({
@@ -68,6 +84,8 @@ export function UnidadCampos({
   errors,
   disabled,
   onChange,
+  onCreatedMarca,
+  onCreatedUbicacion,
 }: UnidadCamposProps) {
   const set = <K extends keyof UnidadCamposValues>(key: K, value: UnidadCamposValues[K]) => {
     onChange({ ...values, [key]: value })
@@ -75,85 +93,115 @@ export function UnidadCampos({
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
+      <div className="grid gap-4 sm:grid-cols-2 mb-1">
+        <div className="space-y-0">
           <label htmlFor={`${idPrefix}-marca`} className="text-sm font-medium">
             Marca
           </label>
-          <NamedSelect
+          <CreatableNamedSelect
             id={`${idPrefix}-marca`}
             value={values.marca_id}
             options={marcas}
-            placeholder="Selecciona una marca"
-            disabled={disabled || marcas.length === 0}
+            placeholder="Selecciona o busca una marca"
+            createNoun="marca"
+            resourcePath="/api/marcas"
+            disabled={disabled}
             error={errors.marca_id}
             onChange={(value) => set("marca_id", value)}
+            onCreated={onCreatedMarca}
           />
         </div>
         <div className="space-y-2">
           <label htmlFor={`${idPrefix}-ubicacion`} className="text-sm font-medium">
             Ubicación
           </label>
-          <NamedSelect
+          <CreatableNamedSelect
             id={`${idPrefix}-ubicacion`}
             value={values.ubicacion_id}
             options={ubicaciones}
-            placeholder="Selecciona una ubicación"
-            disabled={disabled || ubicaciones.length === 0}
+            placeholder="Selecciona o busca una ubicación"
+            createNoun="ubicación"
+            resourcePath="/api/ubicaciones"
+            disabled={disabled}
             error={errors.ubicacion_id}
             onChange={(value) => set("ubicacion_id", value)}
+            onCreated={onCreatedUbicacion}
           />
         </div>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="space-y-2">
-          <label htmlFor={`${idPrefix}-fecha`} className="text-sm font-medium">
-            Última calibración
-            <span className="ml-1 font-normal text-muted-foreground">(opcional)</span>
-          </label>
-          <Input
-            id={`${idPrefix}-fecha`}
-            type="date"
-            className="h-10"
-            value={values.fecha_calibracion}
-            disabled={disabled}
-            onChange={(event) => set("fecha_calibracion", event.target.value)}
-          />
-        </div>
-        <div className="space-y-2">
-          <label htmlFor={`${idPrefix}-proxima`} className="text-sm font-medium">
-            Próxima calibración
-            <span className="ml-1 font-normal text-muted-foreground">(opcional)</span>
-          </label>
-          <Input
-            id={`${idPrefix}-proxima`}
-            type="date"
-            className="h-10"
-            value={values.proxima_calibracion}
-            disabled={disabled}
-            aria-invalid={Boolean(errors.proxima_calibracion)}
-            onChange={(event) => set("proxima_calibracion", event.target.value)}
-          />
-          {errors.proxima_calibracion ? (
-            <p className="text-sm text-destructive">{errors.proxima_calibracion}</p>
-          ) : null}
-        </div>
-      </div>
-
-      <div className="space-y-2">
-        <label htmlFor={`${idPrefix}-observaciones`} className="text-sm font-medium">
-          Observaciones
-          <span className="ml-1 font-normal text-muted-foreground">(opcional)</span>
+      <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
+        <label htmlFor={`${idPrefix}-requiere-calibracion`} className="text-sm font-medium">
+          ¿Requiere calibración?
         </label>
-        <Textarea
-          id={`${idPrefix}-observaciones`}
-          placeholder="Serie, estado físico u otra nota de esta unidad"
-          value={values.observaciones}
+        <button
+          type="button"
+          id={`${idPrefix}-requiere-calibracion`}
+          role="switch"
+          aria-checked={values.requiere_calibracion}
           disabled={disabled}
-          onChange={(event) => set("observaciones", event.target.value)}
-        />
+          onClick={() => {
+            const next = !values.requiere_calibracion
+            onChange({
+              ...values,
+              requiere_calibracion: next,
+              fecha_calibracion: next ? values.fecha_calibracion : "",
+              proxima_calibracion: next ? values.proxima_calibracion : "",
+            })
+          }}
+          className={cn(
+            "relative cursor-pointer inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors",
+            values.requiere_calibracion ? "bg-primary" : "bg-input",
+            disabled && "cursor-not-allowed opacity-50",
+          )}
+        >
+          <span
+            className={cn(
+              "inline-block size-5 rounded-full bg-background shadow-sm transition-transform",
+              values.requiere_calibracion ? "translate-x-5" : "translate-x-0.5",
+            )}
+          />
+        </button>
       </div>
+
+      {values.requiere_calibracion ? (
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <label htmlFor={`${idPrefix}-fecha`} className="text-sm font-medium">
+              Última calibración
+            </label>
+            <Input
+              id={`${idPrefix}-fecha`}
+              type="date"
+              className="h-8"
+              value={values.fecha_calibracion}
+              disabled={disabled}
+              aria-invalid={Boolean(errors.fecha_calibracion)}
+              onChange={(event) => set("fecha_calibracion", event.target.value)}
+            />
+            {errors.fecha_calibracion ? (
+              <p className="text-sm text-destructive">{errors.fecha_calibracion}</p>
+            ) : null}
+          </div>
+          <div className="space-y-2">
+            <label htmlFor={`${idPrefix}-proxima`} className="text-sm font-medium">
+              Próxima calibración
+            </label>
+            <Input
+              id={`${idPrefix}-proxima`}
+              type="date"
+              className="h-8"
+              value={values.proxima_calibracion}
+              disabled={disabled}
+              aria-invalid={Boolean(errors.proxima_calibracion)}
+              onChange={(event) => set("proxima_calibracion", event.target.value)}
+            />
+            {errors.proxima_calibracion ? (
+              <p className="text-sm text-destructive">{errors.proxima_calibracion}</p>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react"
 
-import { NamedSelect, type NamedOption } from "@/components/form/named-select"
+import { CreatableNamedSelect } from "@/components/form/creatable-named-select"
+import { type NamedOption } from "@/components/form/named-select"
 import {
   BotonAgregarUnidad,
   UnidadCampos,
@@ -20,7 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
+import { type CatalogoItem } from "@/lib/catalogo"
 import {
   type Herramienta,
   type HerramientaFormValues,
@@ -45,6 +46,9 @@ type ModalHerramientaProps = {
   fieldErrors: HerramientaFieldErrors
   onOpenChange: (open: boolean) => void
   onSubmit: (values: HerramientaFormValues) => void
+  onCreatedCategoria: (item: CatalogoItem) => void
+  onCreatedMarca: (item: CatalogoItem) => void
+  onCreatedUbicacion: (item: CatalogoItem) => void
 }
 
 export function ModalHerramienta({
@@ -58,10 +62,12 @@ export function ModalHerramienta({
   fieldErrors,
   onOpenChange,
   onSubmit,
+  onCreatedCategoria,
+  onCreatedMarca,
+  onCreatedUbicacion,
 }: ModalHerramientaProps) {
   const isEditing = Boolean(item)
   const [nombre, setNombre] = useState("")
-  const [descripcion, setDescripcion] = useState("")
   const [categoriaId, setCategoriaId] = useState("")
   const [unidades, setUnidades] = useState<UnidadBorrador[]>([])
   const [unidadCampos, setUnidadCampos] = useState<UnidadCamposValues>(
@@ -75,14 +81,13 @@ export function ModalHerramienta({
     if (!open) return
 
     setNombre(item?.nombre ?? "")
-    setDescripcion(item?.descripcion ?? "")
     setCategoriaId(item?.categoria_id ?? categorias[0]?.id ?? "")
     setUnidades([])
     setUnidadCampos(unidadCamposVacia(marcas, ubicaciones))
     setUnidadErrors({})
     setEditingUnidadKey(null)
     setLocalErrors({})
-  }, [categorias, item, marcas, open, ubicaciones])
+  }, [item?.id, open])
 
   const closeModal = () => {
     if (isSubmitting) return
@@ -116,6 +121,7 @@ export function ModalHerramienta({
     )
     setUnidadCampos({
       ...unidadCampos,
+      requiere_calibracion: false,
       fecha_calibracion: "",
       proxima_calibracion: "",
       observaciones: "",
@@ -140,7 +146,7 @@ export function ModalHerramienta({
 
     onSubmit({
       nombre: nombreValue,
-      descripcion: descripcion.trim(),
+      descripcion: "",
       categoria_id: categoriaId,
       unidades: isEditing ? undefined : unidades,
     })
@@ -195,20 +201,14 @@ export function ModalHerramienta({
             </div>
           ) : null}
 
-          {categorias.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              Primero crea una categoría en Inventario → Categorías.
-            </p>
-          ) : null}
-
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-4 sm:grid-cols-2 mb-1">
             <div className="space-y-2">
               <label htmlFor="herramienta-nombre" className="text-sm font-medium">
                 Nombre
               </label>
               <Input
                 id="herramienta-nombre"
-                className="h-10"
+                className="h-8"
                 placeholder="Ej. Llave 3/8"
                 value={nombre}
                 disabled={isSubmitting}
@@ -229,12 +229,15 @@ export function ModalHerramienta({
               <label htmlFor="herramienta-categoria" className="text-sm font-medium">
                 Categoría
               </label>
-              <NamedSelect
+              <CreatableNamedSelect
                 id="herramienta-categoria"
                 value={categoriaId}
                 options={categorias}
-                placeholder="Selecciona una categoría"
-                disabled={isSubmitting || categorias.length === 0}
+                placeholder="Selecciona o busca una categoría"
+                createNoun="categoría"
+                resourcePath="/api/categorias"
+                className="h-9"
+                disabled={isSubmitting}
                 error={shownErrors.categoria_id}
                 onChange={(value) => {
                   setCategoriaId(value)
@@ -245,24 +248,9 @@ export function ModalHerramienta({
                     }))
                   }
                 }}
+                onCreated={onCreatedCategoria}
               />
             </div>
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="herramienta-descripcion" className="text-sm font-medium">
-              Descripción
-              <span className="ml-1 font-normal text-muted-foreground">
-                (opcional)
-              </span>
-            </label>
-            <Textarea
-              id="herramienta-descripcion"
-              placeholder="Medida, uso u otra nota del tipo de herramienta"
-              value={descripcion}
-              disabled={isSubmitting}
-              onChange={(event) => setDescripcion(event.target.value)}
-            />
           </div>
 
           {!isEditing ? (
@@ -275,32 +263,25 @@ export function ModalHerramienta({
                 </p>
               </div>
 
-              {marcas.length === 0 || ubicaciones.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  Necesitas al menos una marca y una ubicación para agregar
-                  unidades.
-                </p>
-              ) : (
-                <>
-                  <UnidadCampos
-                    idPrefix="nueva-unidad"
-                    values={unidadCampos}
-                    marcas={marcas}
-                    ubicaciones={ubicaciones}
-                    errors={unidadErrors}
-                    disabled={isSubmitting}
-                    onChange={(values) => {
-                      setUnidadCampos(values)
-                      setUnidadErrors({})
-                    }}
-                  />
-                  <BotonAgregarUnidad
-                    disabled={isSubmitting}
-                    isEditing={Boolean(editingUnidadKey)}
-                    onClick={handleAgregarUnidad}
-                  />
-                </>
-              )}
+              <UnidadCampos
+                idPrefix="nueva-unidad"
+                values={unidadCampos}
+                marcas={marcas}
+                ubicaciones={ubicaciones}
+                errors={unidadErrors}
+                disabled={isSubmitting}
+                onChange={(values) => {
+                  setUnidadCampos(values)
+                  setUnidadErrors({})
+                }}
+                onCreatedMarca={onCreatedMarca}
+                onCreatedUbicacion={onCreatedUbicacion}
+              />
+              <BotonAgregarUnidad
+                disabled={isSubmitting}
+                isEditing={Boolean(editingUnidadKey)}
+                onClick={handleAgregarUnidad}
+              />
 
               <UnidadesMiniTabla
                 filas={unidades.map((unidad) => ({
@@ -317,9 +298,12 @@ export function ModalHerramienta({
                   setUnidadCampos({
                     marca_id: unidad.marca_id,
                     ubicacion_id: unidad.ubicacion_id,
+                    requiere_calibracion: Boolean(
+                      unidad.fecha_calibracion || unidad.proxima_calibracion,
+                    ),
                     fecha_calibracion: unidad.fecha_calibracion,
                     proxima_calibracion: unidad.proxima_calibracion,
-                    observaciones: unidad.observaciones,
+                    observaciones: "",
                   })
                   setEditingUnidadKey(key)
                   setUnidadErrors({})
@@ -350,7 +334,7 @@ export function ModalHerramienta({
           <Button
             type="submit"
             form="herramienta-form"
-            disabled={isSubmitting || categorias.length === 0}
+            disabled={isSubmitting}
           >
             {isSubmitting ? "Guardando..." : "Guardar"}
           </Button>

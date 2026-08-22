@@ -15,6 +15,7 @@ import {
   ModalMecanico,
   type MecanicoFieldErrors,
 } from "@/components/modal/ModalMecanico"
+import { AlertError } from "@/components/ui/alert-error"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/ui/data-table"
@@ -331,12 +332,7 @@ export const Mecanicos = () => {
 
       <section className="space-y-4">
         {pageError ? (
-          <div
-            className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-            role="alert"
-          >
-            {pageError}
-          </div>
+          <AlertError onClose={() => setPageError("")}>{pageError}</AlertError>
         ) : null}
 
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">

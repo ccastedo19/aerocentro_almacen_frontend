@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react"
-import { Search, UserRound, Wrench } from "lucide-react"
+import { RotateCcw, Search, UserRound, Wrench } from "lucide-react"
 
+import { AlertError } from "@/components/ui/alert-error"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -17,16 +18,22 @@ type ModalBuscarHerramientaEnUsoProps = {
   open: boolean
   usedTools: PrestamoEnUso[]
   isLoading?: boolean
+  returningId?: string | null
   error?: string
   onOpenChange: (open: boolean) => void
+  onDismissError?: () => void
+  onReturnTool: (detalleId: string) => void
 }
 
 export function ModalBuscarHerramientaEnUso({
   open,
   usedTools,
   isLoading = false,
+  returningId = null,
   error = "",
   onOpenChange,
+  onDismissError,
+  onReturnTool,
 }: ModalBuscarHerramientaEnUsoProps) {
   const [search, setSearch] = useState("")
 
@@ -77,17 +84,13 @@ export function ModalBuscarHerramientaEnUso({
             Buscar herramienta en uso
           </DialogTitle>
           <DialogDescription>
-            Consulta qué mecánico tiene actualmente una unidad prestada.
+            Consulta qué mecánico tiene una unidad prestada y regístrala como
+            devuelta.
           </DialogDescription>
         </DialogHeader>
 
         {error ? (
-          <div
-            className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-            role="alert"
-          >
-            {error}
-          </div>
+          <AlertError onClose={() => onDismissError?.()}>{error}</AlertError>
         ) : null}
 
         <div className="relative">
@@ -138,14 +141,25 @@ export function ModalBuscarHerramientaEnUso({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-2 sm:shrink-0">
-                  <UserRound className="size-4 text-muted-foreground" />
-                  <div>
-                    <p className="text-xs text-muted-foreground">
-                      En préstamo con
-                    </p>
-                    <p className="text-sm font-medium">{item.mechanicName}</p>
+                <div className="flex flex-col gap-2 sm:shrink-0 sm:flex-row sm:items-center">
+                  <div className="flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-2">
+                    <UserRound className="size-4 text-muted-foreground" />
+                    <div>
+                      <p className="text-xs text-muted-foreground">
+                        En préstamo con
+                      </p>
+                      <p className="text-sm font-medium">{item.mechanicName}</p>
+                    </div>
                   </div>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    disabled={Boolean(returningId)}
+                    onClick={() => onReturnTool(item.detalleId)}
+                  >
+                    <RotateCcw data-icon="inline-start" />
+                    {returningId === item.detalleId ? "Devolviendo..." : "Devolver"}
+                  </Button>
                 </div>
               </div>
             ))}

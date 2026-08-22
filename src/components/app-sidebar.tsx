@@ -6,20 +6,20 @@ import {
   ChevronsUpDown,
   DatabaseBackup,
   FolderTree,
+  History,
   LogOut,
   MapPin,
   Package,
   Tag,
   UserRound,
   Users,
-  Warehouse,
   Wrench,
 } from 'lucide-react'
 import { useTheme } from "@/hooks/use-theme";
 import { Moon, Sun, Monitor } from "lucide-react";
 
 import { Link, useLocation, useNavigate } from "react-router-dom";
-
+import logo from "@/assets/img/logo_aerocentro.jpg";
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   DropdownMenu,
@@ -51,9 +51,8 @@ import { esAdministrador, getIniciales, getNombreCompleto } from "@/lib/auth"
 const data = {
   teams: [
     {
-      name: 'Aerocentro',
-      logo: Warehouse,
-      plan: 'Almacén de herramientas',
+      name: 'Aerocentro Almacén',
+      plan: 'Version 1.0',
     },
   ],
   navGroups: [
@@ -97,6 +96,16 @@ const data = {
       ],
     },
     {
+      label: "Reportes",
+      items: [
+        {
+          title: "Historial de Préstamos",
+          url: "/historial-prestamos",
+          icon: History,
+        },
+      ],
+    },
+    {
       label: "Personal",
       items: [
         {
@@ -132,7 +141,6 @@ function TeamSwitcher({
 }: {
   teams: {
     name: string
-    logo: React.ElementType
     plan: string
   }[]
 }) {
@@ -147,8 +155,12 @@ function TeamSwitcher({
     <SidebarMenu>
       <SidebarMenuItem>
         <SidebarMenuButton size="lg">
-          <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-            <activeTeam.logo className="size-4" />
+          <div className="flex aspect-square size-8 items-center justify-center overflow-hidden rounded-lg bg-white">
+            <img
+              src={logo}
+              alt="Aerocentro"
+              className="size-full object-contain"
+            />
           </div>
   
           <div className="grid flex-1 text-left text-sm leading-tight">
