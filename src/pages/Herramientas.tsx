@@ -18,6 +18,7 @@ import {
 } from "@/components/modal/ModalHerramienta"
 import { ModalVerUnidades } from "@/components/modal/ModalVerUnidades"
 import { AlertError } from "@/components/ui/alert-error"
+import { PagePreloader } from "@/components/ui/page-preloader"
 import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/ui/data-table"
 import { type DataTableFeatures } from "@/components/ui/data-table-features"
@@ -328,6 +329,10 @@ export const Herramientas = () => {
     }
   }
 
+  if (isLoading) {
+    return <PagePreloader recurso="todas las herramientas" />
+  }
+
   return (
     <div className="w-full space-y-8">
       <section className="space-y-1">
@@ -401,30 +406,24 @@ export const Herramientas = () => {
           </Button>
         </div>
 
-        {isLoading ? (
-          <div className="rounded-xl border bg-card px-4 py-10 text-center text-sm text-muted-foreground ring-1 ring-foreground/10">
-            Cargando herramientas...
-          </div>
-        ) : (
-          <DataTable
-            columns={columns}
-            data={visibleItems}
-            search={search}
-            pageSizeOptions={[5, 10, 20]}
-            emptyMessage={
-              hasSearch
-                ? "No se encontraron herramientas"
-                : estadoFiltro !== "todos"
-                  ? "No hay herramientas en este estado"
-                  : "No hay herramientas registradas"
-            }
-            emptyDescription={
-              hasSearch
-                ? "Intenta con otro nombre o categoría."
-                : "Agrega la primera herramienta y sus unidades para comenzar."
-            }
-          />
-        )}
+        <DataTable
+          columns={columns}
+          data={visibleItems}
+          search={search}
+          pageSizeOptions={[5, 10, 20]}
+          emptyMessage={
+            hasSearch
+              ? "No se encontraron herramientas"
+              : estadoFiltro !== "todos"
+                ? "No hay herramientas en este estado"
+                : "No hay herramientas registradas"
+          }
+          emptyDescription={
+            hasSearch
+              ? "Intenta con otro nombre o categoría."
+              : "Agrega la primera herramienta y sus unidades para comenzar."
+          }
+        />
       </section>
 
       <ModalHerramienta

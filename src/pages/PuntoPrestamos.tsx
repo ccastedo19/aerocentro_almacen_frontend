@@ -5,6 +5,7 @@ import { ModalAgregarPrestamo } from "@/components/modal/ModalAgregarPrestamo"
 import { ModalBuscarHerramientaEnUso } from "@/components/modal/ModalBuscarHerramientaEnUso"
 import { ModalVerPrestamos } from "@/components/modal/ModalVerPrestamos"
 import { AlertError } from "@/components/ui/alert-error"
+import { PagePreloader } from "@/components/ui/page-preloader"
 import { Button } from "@/components/ui/button"
 import {
   Card,
@@ -250,6 +251,10 @@ export const PuntoPrestamos = () => {
     }
   }
 
+  if (isLoading) {
+    return <PagePreloader recurso="todos los mecánicos" />
+  }
+
   return (
     <div className="w-full space-y-8">
       <section className="space-y-1">
@@ -292,13 +297,7 @@ export const PuntoPrestamos = () => {
           </Button>
         </div>
 
-        {isLoading ? (
-          <Card className="border-dashed">
-            <CardContent className="py-8 text-center text-sm text-muted-foreground">
-              Cargando mecánicos...
-            </CardContent>
-          </Card>
-        ) : filteredMechanics.length > 0 ? (
+        {filteredMechanics.length > 0 ? (
           <div className="grid gap-5 md:grid-cols-2 xl:grid-cols-3">
             {filteredMechanics.map((mechanic, index) => {
               const activeLoans = Number(mechanic.prestamos_activos ?? 0)
@@ -408,11 +407,7 @@ export const PuntoPrestamos = () => {
         canAdd={viewMechanic?.estado === MECANICO_ACTIVO}
         onDismissError={() => setViewError("")}
         onOpenChange={(open) => {
-          if (!open) {
-            setViewMechanicId(null)
-            setViewLoans([])
-            setViewError("")
-          }
+          if (!open) setViewMechanicId(null)
         }}
         onAddTool={() => {
           if (viewMechanicId) void openAddLoan(viewMechanicId)

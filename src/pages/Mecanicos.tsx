@@ -16,6 +16,7 @@ import {
   type MecanicoFieldErrors,
 } from "@/components/modal/ModalMecanico"
 import { AlertError } from "@/components/ui/alert-error"
+import { PagePreloader } from "@/components/ui/page-preloader"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/ui/data-table"
@@ -321,6 +322,10 @@ export const Mecanicos = () => {
     }
   }
 
+  if (isLoading) {
+    return <PagePreloader recurso="todos los mecánicos" />
+  }
+
   return (
     <div className="w-full space-y-8">
       <section className="space-y-1">
@@ -388,30 +393,24 @@ export const Mecanicos = () => {
           </Button>
         </div>
 
-        {isLoading ? (
-          <div className="rounded-xl border bg-card px-4 py-10 text-center text-sm text-muted-foreground ring-1 ring-foreground/10">
-            Cargando mecánicos...
-          </div>
-        ) : (
-          <DataTable
-            columns={columns}
-            data={visibleItems}
-            search={search}
-            pageSizeOptions={[5, 10, 20]}
-            emptyMessage={
-              hasSearch
-                ? "No se encontraron mecánicos"
-                : estadoFiltro !== "todos"
-                  ? "No hay mecánicos en este estado"
-                  : "No hay mecánicos registrados"
-            }
-            emptyDescription={
-              hasSearch
-                ? "Intenta con otro nombre, apodo, licencia o cargo."
-                : "Agrega el primer mecánico para comenzar."
-            }
-          />
-        )}
+        <DataTable
+          columns={columns}
+          data={visibleItems}
+          search={search}
+          pageSizeOptions={[5, 10, 20]}
+          emptyMessage={
+            hasSearch
+              ? "No se encontraron mecánicos"
+              : estadoFiltro !== "todos"
+                ? "No hay mecánicos en este estado"
+                : "No hay mecánicos registrados"
+          }
+          emptyDescription={
+            hasSearch
+              ? "Intenta con otro nombre, apodo, licencia o cargo."
+              : "Agrega el primer mecánico para comenzar."
+          }
+        />
       </section>
 
       <ModalMecanico

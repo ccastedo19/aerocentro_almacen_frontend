@@ -14,7 +14,11 @@ import {
   type LineaKardex,
 } from "@/lib/historial-prestamos"
 
-export function HistorialGeneral() {
+type HistorialGeneralProps = {
+  onLoadingChange?: (loading: boolean) => void
+}
+
+export function HistorialGeneral({ onLoadingChange }: HistorialGeneralProps) {
   const [lineas, setLineas] = useState<LineaKardex[]>([])
   const [search, setSearch] = useState("")
   const [isLoading, setIsLoading] = useState(true)
@@ -48,6 +52,10 @@ export function HistorialGeneral() {
       cancelled = true
     }
   }, [loadItems])
+
+  useEffect(() => {
+    onLoadingChange?.(isLoading)
+  }, [isLoading, onLoadingChange])
 
   const columns = useMemo(() => {
     const columnHelper = createColumnHelper<DataTableFeatures, LineaKardex>()
@@ -116,6 +124,8 @@ export function HistorialGeneral() {
 
   const hasSearch = search.trim().length > 0
 
+  if (isLoading) return null
+
   return (
     <section className="space-y-4">
       {pageError ? (
@@ -136,28 +146,22 @@ export function HistorialGeneral() {
         />
       </div>
 
-      {isLoading ? (
-        <div className="rounded-xl border bg-card px-4 py-10 text-center text-sm text-muted-foreground ring-1 ring-foreground/10">
-          Cargando kardex...
-        </div>
-      ) : (
-        <DataTable
-          columns={columns}
-          data={lineas}
-          search={search}
-          pageSizeOptions={[5, 10, 20, 50]}
-          emptyMessage={
-            hasSearch
-              ? "No se encontraron movimientos"
-              : "No hay movimientos registrados"
-          }
-          emptyDescription={
-            hasSearch
-              ? "Intenta con otra herramienta, mecánico o unidad."
-              : "Los préstamos y devoluciones aparecerán aquí como un kardex."
-          }
-        />
-      )}
+      <DataTable
+        columns={columns}
+        data={lineas}
+        search={search}
+        pageSizeOptions={[5, 10, 20, 50]}
+        emptyMessage={
+          hasSearch
+            ? "No se encontraron movimientos"
+            : "No hay movimientos registrados"
+        }
+        emptyDescription={
+          hasSearch
+            ? "Intenta con otra herramienta, mecánico o unidad."
+            : "Los préstamos y devoluciones aparecerán aquí como un kardex."
+        }
+      />
     </section>
   )
 }

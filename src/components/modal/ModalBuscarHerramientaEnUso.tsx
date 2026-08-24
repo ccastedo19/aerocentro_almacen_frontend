@@ -12,6 +12,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { useClosingSnapshot } from "@/hooks/use-closing-snapshot"
 import { formatBorrowedAt, type PrestamoEnUso } from "@/lib/prestamos"
 
 type ModalBuscarHerramientaEnUsoProps = {
@@ -36,6 +37,9 @@ export function ModalBuscarHerramientaEnUso({
   onReturnTool,
 }: ModalBuscarHerramientaEnUsoProps) {
   const [search, setSearch] = useState("")
+  const displayedTools = useClosingSnapshot(open, usedTools)
+  const displayedLoading = useClosingSnapshot(open, isLoading)
+  const displayedError = useClosingSnapshot(open, error)
 
   useEffect(() => {
     if (open) setSearch("")
@@ -44,7 +48,7 @@ export function ModalBuscarHerramientaEnUso({
   const filteredTools = useMemo(() => {
     const query = search.trim().toLocaleLowerCase()
 
-    if (!query) return usedTools
+    if (!query) return displayedTools
 
     return usedTools.filter((item) => {
       const haystack = [
@@ -59,10 +63,9 @@ export function ModalBuscarHerramientaEnUso({
 
       return haystack.includes(query)
     })
-  }, [search, usedTools])
+  }, [displayedTools, search])
 
   const closeModal = () => {
-    setSearch("")
     onOpenChange(false)
   }
 
@@ -89,8 +92,8 @@ export function ModalBuscarHerramientaEnUso({
           </DialogDescription>
         </DialogHeader>
 
-        {error ? (
-          <AlertError onClose={() => onDismissError?.()}>{error}</AlertError>
+        {displayedError ? (
+          <AlertError onClose={() => onDismissError?.()}>{displayedError}</AlertError>
         ) : null}
 
         <div className="relative">
@@ -114,7 +117,7 @@ export function ModalBuscarHerramientaEnUso({
           </span>
         </div>
 
-        {isLoading ? (
+        {displayedLoading ? (
           <div className="py-10 text-center text-sm text-muted-foreground">
             Cargando herramientas en uso...
           </div>

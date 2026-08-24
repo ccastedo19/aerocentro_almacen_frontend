@@ -1,7 +1,5 @@
 import * as React from 'react'
 import {
-  BadgeCheck,
-  Bell,
   House,
   ChevronsUpDown,
   DatabaseBackup,
@@ -45,6 +43,7 @@ import {
   SidebarRail,
   useSidebar,
 } from '@/components/ui/sidebar'
+import { ModalLogout } from "@/components/modal/ModalLogout"
 import { useAuth } from "@/hooks/use-auth"
 import { esAdministrador, getIniciales, getNombreCompleto } from "@/lib/auth"
 
@@ -227,6 +226,8 @@ function NavUser() {
   const { theme, setTheme } = useTheme()
   const navigate = useNavigate()
   const { usuario, logout } = useAuth()
+  const [isLogoutOpen, setIsLogoutOpen] = React.useState(false)
+  const [isLoggingOut, setIsLoggingOut] = React.useState(false)
 
   if (!usuario) return null
 
@@ -234,9 +235,16 @@ function NavUser() {
   const initials = getIniciales(usuario)
 
   const handleLogout = () => {
-    void logout().then(() => {
-      navigate("/login", { replace: true })
-    })
+    setIsLoggingOut(true)
+
+    void logout()
+      .then(() => {
+        navigate("/login", { replace: true })
+      })
+      .finally(() => {
+        setIsLoggingOut(false)
+        setIsLogoutOpen(false)
+      })
   }
 
   return (
@@ -251,12 +259,12 @@ function NavUser() {
               />
             }
           >
-            <Avatar className="h-8 w-8 rounded-lg">
+            <Avatar className="h-8 w-8 rounded-lg dark:after:hidden">
               <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
             </Avatar>
             <div className="grid flex-1 text-left text-sm leading-tight">
               <span className="truncate font-medium">{name}</span>
-              <span className="truncate text-xs">{usuario.email}</span>
+              <span className="truncate text-xs">{usuario.rol?.nombre ?? "Sin rol"}</span>
             </div>
             <ChevronsUpDown className="ml-auto size-4" />
           </DropdownMenuTrigger>
@@ -269,12 +277,12 @@ function NavUser() {
             <DropdownMenuGroup>
               <DropdownMenuLabel className="p-0 font-normal">
                 <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                  <Avatar className="h-8 w-8 rounded-lg">
+                  <Avatar className="h-8 w-8 rounded-lg dark:after:hidden">
                     <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
                   </Avatar>
                   <div className="grid flex-1 text-left text-sm leading-tight">
                     <span className="truncate font-medium">{name}</span>
-                    <span className="truncate text-xs">{usuario.email}</span>
+                    <span className="truncate text-xs">{usuario.rol?.nombre ?? "Sin rol"}</span>
                   </div>
                 </div>
               </DropdownMenuLabel>
@@ -314,29 +322,28 @@ function NavUser() {
                 </DropdownMenuRadioGroup>
 
               </DropdownMenuGroup>
-
-              <DropdownMenuSeparator />
-
-              <DropdownMenuGroup>
-
-                <DropdownMenuItem>
-                  <BadgeCheck />
-                  Cuenta
-                </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Bell />
-                Notificaciones
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
+              
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem variant="destructive" onClick={handleLogout}>
+              <DropdownMenuItem
+                variant="destructive"
+                onClick={() => setIsLogoutOpen(true)}
+              >
                 <LogOut />
                 Salir
               </DropdownMenuItem>
             </DropdownMenuGroup>
           </DropdownMenuContent>
         </DropdownMenu>
+        <ModalLogout
+          open={isLogoutOpen}
+          isSubmitting={isLoggingOut}
+          onOpenChange={(open) => {
+            if (!open && isLoggingOut) return
+            setIsLogoutOpen(open)
+          }}
+          onConfirm={handleLogout}
+        />
       </SidebarMenuItem>
     </SidebarMenu>
   )

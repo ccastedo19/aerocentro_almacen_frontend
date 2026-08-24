@@ -17,7 +17,13 @@ import {
   type MovimientoPrestamo,
 } from "@/lib/historial-prestamos"
 
-export function HistorialPorMecanico() {
+type HistorialPorMecanicoProps = {
+  onLoadingChange?: (loading: boolean) => void
+}
+
+export function HistorialPorMecanico({
+  onLoadingChange,
+}: HistorialPorMecanicoProps) {
   const [items, setItems] = useState<MecanicoHistorial[]>([])
   const [search, setSearch] = useState("")
   const [isLoading, setIsLoading] = useState(true)
@@ -54,6 +60,10 @@ export function HistorialPorMecanico() {
       cancelled = true
     }
   }, [loadItems])
+
+  useEffect(() => {
+    onLoadingChange?.(isLoading)
+  }, [isLoading, onLoadingChange])
 
   useEffect(() => {
     if (!viewingItem) return
@@ -161,6 +171,8 @@ export function HistorialPorMecanico() {
 
   const hasSearch = search.trim().length > 0
 
+  if (isLoading) return null
+
   return (
     <section className="space-y-4">
       {pageError ? (
@@ -181,28 +193,22 @@ export function HistorialPorMecanico() {
         />
       </div>
 
-      {isLoading ? (
-        <div className="rounded-xl border bg-card px-4 py-10 text-center text-sm text-muted-foreground ring-1 ring-foreground/10">
-          Cargando mecánicos...
-        </div>
-      ) : (
-        <DataTable
-          columns={columns}
-          data={items}
-          search={search}
-          pageSizeOptions={[5, 10, 20, 50]}
-          emptyMessage={
-            hasSearch
-              ? "No se encontraron mecánicos"
-              : "No hay movimientos registrados"
-          }
-          emptyDescription={
-            hasSearch
-              ? "Intenta con otro nombre, apodo o cargo."
-              : "Cuando un mecánico tome o devuelva una unidad, aparecerá aquí."
-          }
-        />
-      )}
+      <DataTable
+        columns={columns}
+        data={items}
+        search={search}
+        pageSizeOptions={[5, 10, 20, 50]}
+        emptyMessage={
+          hasSearch
+            ? "No se encontraron mecánicos"
+            : "No hay movimientos registrados"
+        }
+        emptyDescription={
+          hasSearch
+            ? "Intenta con otro nombre, apodo o cargo."
+            : "Cuando un mecánico tome o devuelva una unidad, aparecerá aquí."
+        }
+      />
 
       <ModalHistorialPrestamo
         open={viewingItem !== null}

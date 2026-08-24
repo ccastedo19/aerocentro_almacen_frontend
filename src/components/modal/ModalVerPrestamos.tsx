@@ -10,6 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { useClosingSnapshot } from "@/hooks/use-closing-snapshot"
 import {
   categoriaUnidad,
   detalleUnidad,
@@ -50,6 +51,11 @@ export function ModalVerPrestamos({
   onReturnTool,
   onReturnAll,
 }: ModalVerPrestamosProps) {
+  const displayedMechanic = useClosingSnapshot(open, mechanic)
+  const displayedLoans = useClosingSnapshot(open, loans)
+  const displayedLoading = useClosingSnapshot(open, isLoading)
+  const displayedError = useClosingSnapshot(open, error)
+  const displayedCanAdd = useClosingSnapshot(open, canAdd)
   const isBusy = Boolean(returningId) || isReturningAll
 
   return (
@@ -57,7 +63,7 @@ export function ModalVerPrestamos({
       <DialogContent className="max-h-[90vh] overflow-hidden sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="pr-8 text-lg">
-            Listado de herramientas prestadas de “{mechanic?.nombre_completo}”
+            Listado de herramientas prestadas de “{displayedMechanic?.nombre_completo}”
           </DialogTitle>
           <DialogDescription>
             Consulta los préstamos activos y registra la devolución de una o
@@ -65,14 +71,14 @@ export function ModalVerPrestamos({
           </DialogDescription>
         </DialogHeader>
 
-        {error ? (
-          <AlertError onClose={() => onDismissError?.()}>{error}</AlertError>
+        {displayedError ? (
+          <AlertError onClose={() => onDismissError?.()}>{displayedError}</AlertError>
         ) : null}
 
         <div className="flex flex-col gap-3 border-y py-3 sm:flex-row sm:items-center sm:justify-between">
           <span className="text-sm font-medium">
-            {loans.length}{" "}
-            {loans.length === 1
+            {displayedLoans.length}{" "}
+            {displayedLoans.length === 1
               ? "herramienta activa"
               : "herramientas activas"}
           </span>
@@ -80,7 +86,7 @@ export function ModalVerPrestamos({
             <Button
               variant="outline"
               size="sm"
-              disabled={!canAdd || isBusy}
+              disabled={!displayedCanAdd || isBusy}
               onClick={onAddTool}
             >
               <Plus data-icon="inline-start" />
@@ -89,7 +95,7 @@ export function ModalVerPrestamos({
             <Button
               variant="destructive"
               size="sm"
-              disabled={loans.length === 0 || isBusy}
+              disabled={displayedLoans.length === 0 || isBusy}
               onClick={onReturnAll}
             >
               <RotateCcw data-icon="inline-start" />
@@ -98,13 +104,13 @@ export function ModalVerPrestamos({
           </div>
         </div>
 
-        {isLoading ? (
+        {displayedLoading ? (
           <div className="py-10 text-center text-sm text-muted-foreground">
             Cargando préstamos...
           </div>
-        ) : loans.length > 0 ? (
+        ) : displayedLoans.length > 0 ? (
           <div className="max-h-[52vh] space-y-2 overflow-y-auto pr-1">
-            {loans.map((loan) => {
+            {displayedLoans.map((loan) => {
               const extra = detalleUnidad(loan.unidad)
 
               return (

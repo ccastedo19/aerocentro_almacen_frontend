@@ -1,3 +1,4 @@
+import { useEffect } from "react"
 import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, ChevronsUpDown } from "lucide-react"
 import {
   useTable,
@@ -60,6 +61,7 @@ export function DataTable<TData extends RowData>({
       enableSortingRemoval: true,
       sortDescFirst: false,
       enableMultiSort: false,
+      autoResetPageIndex: false,
       initialState: {
         pagination: {
           pageIndex: 0,
@@ -82,6 +84,16 @@ export function DataTable<TData extends RowData>({
   const pageSize = table.state.pagination.pageSize
   const pageIndex = table.state.pagination.pageIndex
   const rows = table.getRowModel().rows
+
+  useEffect(() => {
+    table.setPageIndex(0)
+  }, [search])
+
+  useEffect(() => {
+    if (pageCount > 0 && pageIndex > pageCount - 1) {
+      table.setPageIndex(pageCount - 1)
+    }
+  }, [pageCount, pageIndex])
 
   return (
     <div className="space-y-4">

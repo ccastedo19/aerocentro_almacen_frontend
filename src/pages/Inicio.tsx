@@ -7,6 +7,7 @@ import {
 } from "lucide-react"
 
 import { AlertError } from "@/components/ui/alert-error"
+import { PagePreloader } from "@/components/ui/page-preloader"
 import {
   Card,
   CardAction,
@@ -25,7 +26,6 @@ import {
 } from "@/components/ui/table"
 import { useAuth } from "@/hooks/use-auth"
 import { ApiError } from "@/lib/api"
-import { getNombreCompleto } from "@/lib/auth"
 import {
   INICIO_VACIO,
   obtenerInicio,
@@ -35,7 +35,7 @@ import { cn } from "@/lib/utils"
 
 export const Inicio = () => {
   const { usuario } = useAuth()
-  const nombreCompleto = usuario ? getNombreCompleto(usuario) : "usuario"
+  const nombre = usuario?.nombre.trim() || "usuario"
   const [dashboard, setDashboard] = useState(INICIO_VACIO)
   const [isLoading, setIsLoading] = useState(true)
   const [pageError, setPageError] = useState("")
@@ -74,11 +74,15 @@ export const Inicio = () => {
     1,
   )
 
+  if (isLoading) {
+    return <PagePreloader recurso="todas las estadísticas" />
+  }
+
   return (
     <div className="w-full space-y-8">
       <section className="space-y-1">
         <h1 className="text-2xl font-semibold tracking-tight">
-          Bienvenido {nombreCompleto} al Sistema de Almacén de Aerocentro
+          Bienvenido {nombre}, puedes usar el Sistema de Almacén.
         </h1>
         <p className="text-sm text-muted-foreground">
           Resumen del inventario y de los préstamos activos.
@@ -95,28 +99,24 @@ export const Inicio = () => {
           valor={resumen.herramientas}
           detalle="Tipos registrados"
           icon={Package}
-          isLoading={isLoading}
         />
         <KpiCard
           titulo="Mecánicos"
           valor={resumen.mecanicos}
           detalle="Personal activo"
           icon={UserRound}
-          isLoading={isLoading}
         />
         <KpiCard
           titulo="Herramientas prestadas"
           valor={resumen.prestadas}
           detalle="Unidades en uso"
           icon={Wrench}
-          isLoading={isLoading}
         />
         <KpiCard
           titulo="Herramientas disponibles"
           valor={resumen.disponibles}
           detalle="Listas para prestar"
           icon={CircleCheck}
-          isLoading={isLoading}
         />
       </section>
 
@@ -129,9 +129,6 @@ export const Inicio = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="min-h-0 flex-1">
-            {isLoading ? (
-              <EmptyState texto="Cargando gráfica..." />
-            ) : (
               <div className="flex h-full items-end gap-3 sm:gap-4">
                 {prestamos_por_dia.map((item) => {
                   const altura = Math.max(
@@ -157,7 +154,6 @@ export const Inicio = () => {
                   )
                 })}
               </div>
-            )}
           </CardContent>
         </Card>
 
@@ -169,9 +165,7 @@ export const Inicio = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="min-h-0 flex-1 overflow-auto">
-            {isLoading ? (
-              <EmptyState texto="Cargando atrasos..." />
-            ) : no_devueltas.length === 0 ? (
+            {no_devueltas.length === 0 ? (
               <EmptyState texto="No hay herramientas atrasadas." />
             ) : (
               <Table>
@@ -215,7 +209,6 @@ export const Inicio = () => {
             <RankingTable
               items={top_herramientas}
               etiqueta="Herramienta"
-              isLoading={isLoading}
               vacio="Aún no hay préstamos de herramientas."
             />
           </CardContent>
@@ -232,7 +225,6 @@ export const Inicio = () => {
             <RankingTable
               items={top_mecanicos}
               etiqueta="Mecánico"
-              isLoading={isLoading}
               vacio="Aún no hay préstamos de mecánicos."
             />
           </CardContent>
@@ -247,13 +239,11 @@ function KpiCard({
   valor,
   detalle,
   icon: Icon,
-  isLoading,
 }: {
   titulo: string
   valor: number
   detalle: string
   icon: typeof Package
-  isLoading: boolean
 }) {
   return (
     <Card>
@@ -265,7 +255,7 @@ function KpiCard({
           </div>
         </CardAction>
         <CardTitle className="text-3xl font-semibold tracking-tight">
-          {isLoading ? "—" : valor}
+          {valor}
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -278,18 +268,12 @@ function KpiCard({
 function RankingTable({
   items,
   etiqueta,
-  isLoading,
   vacio,
 }: {
   items: RankingInicio[]
   etiqueta: string
-  isLoading: boolean
   vacio: string
 }) {
-  if (isLoading) {
-    return <EmptyState texto="Cargando ranking..." />
-  }
-
   if (items.length === 0) {
     return <EmptyState texto={vacio} />
   }

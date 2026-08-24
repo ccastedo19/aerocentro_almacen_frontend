@@ -112,6 +112,15 @@ export function Breadcrumbs() {
               </BreadcrumbItem>
             </>
           )}
+
+        {pathname !== "/inicio" && pathname !== "/" && !current ? (
+          <>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Página no encontrada</BreadcrumbPage>
+            </BreadcrumbItem>
+          </>
+        ) : null}
       </BreadcrumbList>
     </Breadcrumb>
   );

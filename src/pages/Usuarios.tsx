@@ -16,6 +16,7 @@ import {
   type UsuarioFieldErrors,
 } from "@/components/modal/ModalUsuario"
 import { AlertError } from "@/components/ui/alert-error"
+import { PagePreloader } from "@/components/ui/page-preloader"
 import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/ui/data-table"
 import { type DataTableFeatures } from "@/components/ui/data-table-features"
@@ -298,6 +299,10 @@ export const Usuarios = () => {
     }
   }
 
+  if (isLoading) {
+    return <PagePreloader recurso="todos los usuarios" />
+  }
+
   return (
     <div className="w-full space-y-8">
       <section className="space-y-1">
@@ -365,30 +370,24 @@ export const Usuarios = () => {
           </Button>
         </div>
 
-        {isLoading ? (
-          <div className="rounded-xl border bg-card px-4 py-10 text-center text-sm text-muted-foreground ring-1 ring-foreground/10">
-            Cargando usuarios...
-          </div>
-        ) : (
-          <DataTable
-            columns={columns}
-            data={visibleItems}
-            search={search}
-            pageSizeOptions={[5, 10, 20]}
-            emptyMessage={
-              hasSearch
-                ? "No se encontraron usuarios"
-                : estadoFiltro !== "todos"
-                  ? "No hay usuarios en este estado"
-                  : "No hay usuarios registrados"
-            }
-            emptyDescription={
-              hasSearch
-                ? "Intenta con otro nombre, usuario o correo."
-                : "Agrega el primer usuario para comenzar."
-            }
-          />
-        )}
+        <DataTable
+          columns={columns}
+          data={visibleItems}
+          search={search}
+          pageSizeOptions={[5, 10, 20]}
+          emptyMessage={
+            hasSearch
+              ? "No se encontraron usuarios"
+              : estadoFiltro !== "todos"
+                ? "No hay usuarios en este estado"
+                : "No hay usuarios registrados"
+          }
+          emptyDescription={
+            hasSearch
+              ? "Intenta con otro nombre, usuario o correo."
+              : "Agrega el primer usuario para comenzar."
+          }
+        />
       </section>
 
       <ModalUsuario

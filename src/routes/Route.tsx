@@ -14,6 +14,7 @@ import { Ubicaciones } from "@/pages/Ubicaciones";
 import { Marcas } from "@/pages/Marcas";
 import { HistorialPrestamos } from "@/pages/HistorialPrestamos";
 import { Mecanicos } from "@/pages/Mecanicos";
+import { NotFound } from "@/pages/NotFound";
 
 const pages = [
   { path: "inicio", element: <Inicio /> },
@@ -55,8 +56,16 @@ export const router = createBrowserRouter([
               { path: "backup", element: <Backup /> },
             ],
           },
+          {
+            path: "*",
+            element: <NotFound />,
+          },
         ],
       },
     ],
+  },
+  {
+    path: "*",
+    element: <NotFound />,
   },
 ]);

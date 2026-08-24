@@ -5,6 +5,7 @@ import { createColumnHelper } from "@tanstack/react-table"
 import { ModalCatalogo } from "@/components/modal/ModalCatalogo"
 import { ModalConfirmarEliminar } from "@/components/modal/ModalConfirmarEliminar"
 import { AlertError } from "@/components/ui/alert-error"
+import { PagePreloader } from "@/components/ui/page-preloader"
 import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/ui/data-table"
 import { type DataTableFeatures } from "@/components/ui/data-table-features"
@@ -212,6 +213,10 @@ export function CatalogoPage({
     }
   }
 
+  if (isLoading) {
+    return <PagePreloader recurso={`todas las ${plural}`} />
+  }
+
   return (
     <div className="w-full space-y-8">
       <section className="space-y-1">
@@ -254,28 +259,22 @@ export function CatalogoPage({
           </Button>
         </div>
 
-        {isLoading ? (
-          <div className="rounded-xl border bg-card px-4 py-10 text-center text-sm text-muted-foreground ring-1 ring-foreground/10">
-            Cargando {plural}...
-          </div>
-        ) : (
-          <DataTable
-            columns={columns}
-            data={items}
-            search={search}
-            pageSizeOptions={[5, 10, 20]}
-            emptyMessage={
-              hasSearch
-                ? `No se encontraron ${plural}`
-                : `No hay ${plural} registradas`
-            }
-            emptyDescription={
-              hasSearch
-                ? "Intenta con otro nombre o descripción."
-                : `Agrega la primera ${singular} para comenzar.`
-            }
-          />
-        )}
+        <DataTable
+          columns={columns}
+          data={items}
+          search={search}
+          pageSizeOptions={[5, 10, 20]}
+          emptyMessage={
+            hasSearch
+              ? `No se encontraron ${plural}`
+              : `No hay ${plural} registradas`
+          }
+          emptyDescription={
+            hasSearch
+              ? "Intenta con otro nombre o descripción."
+              : `Agrega la primera ${singular} para comenzar.`
+          }
+        />
       </section>
 
       <ModalCatalogo

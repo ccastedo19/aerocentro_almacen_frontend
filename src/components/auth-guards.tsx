@@ -1,14 +1,11 @@
 import { Navigate, Outlet } from "react-router-dom"
 
+import { PagePreloader } from "@/components/ui/page-preloader"
 import { useAuth } from "@/hooks/use-auth"
 import { esAdministrador } from "@/lib/auth"
 
 function AuthSplash() {
-  return (
-    <div className="flex min-h-svh items-center justify-center bg-background">
-      <p className="text-sm text-muted-foreground">Cargando sesión...</p>
-    </div>
-  )
+  return <PagePreloader recurso="la sesión" variant="screen" />
 }
 
 export function RequireAuth() {
