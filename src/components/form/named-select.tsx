@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils"
 export type NamedOption = {
   id: string
   nombre: string
+  ruta?: string
 }
 
 type NamedSelectProps = {
@@ -37,9 +38,13 @@ export function NamedSelect({
     <>
       <Select
         value={value || null}
-        items={Object.fromEntries(options.map((option) => [option.id, option.nombre]))}
+        items={Object.fromEntries(
+          options.map((option) => [option.id, option.ruta ?? option.nombre]),
+        )}
         itemToStringLabel={(optionId) =>
-          options.find((option) => option.id === optionId)?.nombre ?? ""
+          options.find((option) => option.id === optionId)?.ruta
+            ?? options.find((option) => option.id === optionId)?.nombre
+            ?? ""
         }
         onValueChange={(next) => {
           if (next == null) return
@@ -57,7 +62,7 @@ export function NamedSelect({
         <SelectContent alignItemWithTrigger={false} className="min-w-64">
           {options.map((option) => (
             <SelectItem key={option.id} value={option.id}>
-              {option.nombre}
+              {option.ruta ?? option.nombre}
             </SelectItem>
           ))}
         </SelectContent>

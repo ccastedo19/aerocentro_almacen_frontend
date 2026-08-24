@@ -39,6 +39,7 @@ import {
 } from "@/components/ui/select"
 import { ApiError } from "@/lib/api"
 import { listarCatalogo, type CatalogoItem } from "@/lib/catalogo"
+import { opcionesCatalogoConRuta } from "@/lib/catalogo-tree"
 import {
   actualizarHerramienta,
   cambiarEstadoHerramienta,
@@ -136,6 +137,15 @@ export const Herramientas = () => {
     return items
   }, [estadoFiltro, items])
 
+  const categoriasOpciones = useMemo(
+    () => opcionesCatalogoConRuta(categorias),
+    [categorias],
+  )
+  const ubicacionesOpciones = useMemo(
+    () => opcionesCatalogoConRuta(ubicaciones),
+    [ubicaciones],
+  )
+
   const handleCambiarEstado = useCallback(
     async (herramienta: Herramienta, estado: number) => {
       setPageError("")
@@ -165,11 +175,18 @@ export const Herramientas = () => {
           <span className="font-medium">{getValue()}</span>
         ),
       }),
-      columnHelper.accessor((row) => row.categoria?.nombre ?? "—", {
+      columnHelper.accessor(
+        (row) =>
+          categoriasOpciones.find((categoria) => categoria.id === row.categoria_id)
+            ?.ruta
+          ?? row.categoria?.nombre
+          ?? "—",
+        {
         id: "categoria",
         header: "Categoría",
         sortFn: "text",
-      }),
+        },
+      ),
       columnHelper.accessor((row) => row.unidades_total ?? 0, {
         id: "unidades",
         header: "Unidades",
@@ -271,7 +288,7 @@ export const Herramientas = () => {
         },
       }),
     ])
-  }, [handleCambiarEstado])
+  }, [categoriasOpciones, handleCambiarEstado])
 
   const hasSearch = search.trim().length > 0
 
@@ -289,7 +306,6 @@ export const Herramientas = () => {
 
       await loadItems()
       setIsFormOpen(false)
-      setEditingItem(null)
     } catch (error) {
       if (error instanceof ApiError) {
         setFieldErrors({
@@ -429,16 +445,15 @@ export const Herramientas = () => {
       <ModalHerramienta
         open={isFormOpen}
         item={editingItem}
-        categorias={categorias}
+        categorias={categoriasOpciones}
         marcas={marcas}
-        ubicaciones={ubicaciones}
+        ubicaciones={ubicacionesOpciones}
         isSubmitting={isSaving}
         formError={formError}
         fieldErrors={fieldErrors}
         onOpenChange={(open) => {
           if (!open && isSaving) return
           setIsFormOpen(open)
-          if (!open) setEditingItem(null)
         }}
         onSubmit={handleSubmit}
         onCreatedCategoria={(item) => insertarCatalogo(setCategorias, item)}
@@ -450,7 +465,7 @@ export const Herramientas = () => {
         open={viewingItem !== null}
         herramienta={viewingItem}
         marcas={marcas}
-        ubicaciones={ubicaciones}
+        ubicaciones={ubicacionesOpciones}
         onOpenChange={(open) => {
           if (!open) setViewingItem(null)
         }}

@@ -1,4 +1,8 @@
 import { api } from "@/lib/api"
+import {
+  etiquetaColoresUnidad,
+  type ColorUnidad,
+} from "@/lib/herramientas"
 import type { ColorMecanico } from "@/lib/mecanicos"
 
 export type RelacionNombre = {
@@ -22,6 +26,9 @@ export type MecanicoPunto = {
 export type UnidadPrestamo = {
   id: string
   observaciones?: string | null
+  color_primario?: ColorUnidad | null
+  color_secundario?: ColorUnidad | null
+  tamano?: string | null
   herramienta?: (RelacionNombre & {
     categoria?: RelacionNombre | null
   }) | null
@@ -109,7 +116,12 @@ export function categoriaUnidad(unidad?: UnidadPrestamo | null) {
 }
 
 export function detalleUnidad(unidad?: UnidadPrestamo | null) {
-  return [unidad?.marca?.nombre, unidad?.ubicacion?.nombre]
+  return [
+    unidad?.marca?.nombre,
+    unidad?.ubicacion?.nombre,
+    unidad?.tamano ? `Tamaño: ${unidad.tamano}` : null,
+    etiquetaColoresUnidad(unidad?.color_primario, unidad?.color_secundario),
+  ]
     .filter(Boolean)
     .join(" · ")
 }

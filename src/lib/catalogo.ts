@@ -5,11 +5,18 @@ export type CatalogoItem = {
   nombre: string
   descripcion: string | null
   estado: number
+  parent_id: string | null
+  padre?: {
+    id: string
+    nombre: string
+    parent_id: string | null
+  } | null
 }
 
 export type CatalogoFormValues = {
   nombre: string
   descripcion: string
+  parent_id: string | null
 }
 
 type LaravelPaginated<T> = {
@@ -38,6 +45,7 @@ export async function crearCatalogo(path: string, values: CatalogoFormValues) {
     body: {
       nombre: values.nombre,
       descripcion: values.descripcion || null,
+      parent_id: values.parent_id,
     },
   })
 
@@ -60,6 +68,7 @@ export async function actualizarCatalogo(
     body: {
       nombre: values.nombre,
       descripcion: values.descripcion || null,
+      parent_id: values.parent_id,
     },
   })
 }

@@ -7,6 +7,7 @@ export const Categorias = () => {
       descripcion="Organiza las herramientas del almacén por tipo para encontrarlas más rápido."
       singular="categoría"
       plural="categorías"
+      jerarquico
       resourcePath="/api/categorias"
       searchPlaceholder="Buscar categoría por nombre o descripción..."
       nombrePlaceholder="Ej. Herramientas de mano"

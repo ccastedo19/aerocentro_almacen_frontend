@@ -71,6 +71,7 @@ export function CreatableNamedSelect({
       const item = await crearCatalogo(resourcePath, {
         nombre: queryTrim,
         descripcion: "",
+        parent_id: null,
       })
       setCreatedOption(item)
       onCreated(item)
@@ -97,7 +98,7 @@ export function CreatableNamedSelect({
         value={selected}
         open={open}
         disabled={disabled || isCreating}
-        itemToStringLabel={(item) => item?.nombre ?? ""}
+        itemToStringLabel={(item) => item?.ruta ?? item?.nombre ?? ""}
         isItemEqualToValue={(item, current) => item.id === current.id}
         onOpenChange={(nextOpen) => {
           setOpen(nextOpen)
@@ -130,7 +131,7 @@ export function CreatableNamedSelect({
               selected ? "text-foreground" : "text-muted-foreground",
             )}
           >
-            {selected?.nombre || placeholder}
+            {selected?.ruta || selected?.nombre || placeholder}
           </span>
           <ChevronDownIcon className="size-4 shrink-0 text-muted-foreground" />
         </Combobox.Trigger>
@@ -163,7 +164,9 @@ export function CreatableNamedSelect({
                     value={item}
                     className="relative flex cursor-default items-center gap-2 rounded-md py-1.5 pr-8 pl-2 text-sm outline-hidden select-none data-highlighted:bg-accent data-highlighted:text-accent-foreground"
                   >
-                    {item.nombre}
+                    <span className="min-w-0 truncate">
+                      {item.ruta ?? item.nombre}
+                    </span>
                     <Combobox.ItemIndicator className="absolute right-2 flex size-4 items-center justify-center">
                       <CheckIcon className="size-4" />
                     </Combobox.ItemIndicator>

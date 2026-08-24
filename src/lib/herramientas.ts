@@ -8,6 +8,26 @@ export const UNIDAD_ESTADO_ELIMINADA = 0
 export const UNIDAD_ESTADO_DISPONIBLE = 1
 export const UNIDAD_ESTADO_PRESTADA = 2
 
+export const SIN_COLOR = "sin_color" as const
+
+export const COLORES_UNIDAD = [
+  { value: SIN_COLOR, label: "Sin color" },
+  { value: "rojo", label: "Rojo" },
+  { value: "amarillo", label: "Amarillo" },
+  { value: "verde", label: "Verde" },
+  { value: "azul", label: "Azul" },
+  { value: "celeste", label: "Celeste" },
+  { value: "blanco", label: "Blanco" },
+  { value: "negro", label: "Negro" },
+  { value: "naranja", label: "Naranja" },
+] as const
+
+export type ColorUnidad = Exclude<
+  (typeof COLORES_UNIDAD)[number]["value"],
+  typeof SIN_COLOR
+>
+export type ColorUnidadSeleccion = ColorUnidad | typeof SIN_COLOR
+
 export type HerramientaRelacion = {
   id: string
   nombre: string
@@ -18,6 +38,9 @@ export type HerramientaUnidad = {
   herramienta_id: string
   marca_id: string
   ubicacion_id: string
+  color_primario: ColorUnidad | null
+  color_secundario: ColorUnidad | null
+  tamano: string | null
   fecha_calibracion: string | null
   proxima_calibracion: string | null
   estado: number
@@ -48,6 +71,9 @@ export type UnidadBorrador = {
   key: string
   marca_id: string
   ubicacion_id: string
+  color_primario: ColorUnidadSeleccion
+  color_secundario: ColorUnidadSeleccion
+  tamano: string
   requiere_calibracion?: boolean
   fecha_calibracion: string
   proxima_calibracion: string
@@ -65,6 +91,9 @@ export type UnidadFormValues = {
   herramienta_id?: string
   marca_id: string
   ubicacion_id: string
+  color_primario: ColorUnidadSeleccion
+  color_secundario: ColorUnidadSeleccion
+  tamano: string
   fecha_calibracion: string
   proxima_calibracion: string
   observaciones: string
@@ -94,6 +123,17 @@ export function etiquetaEstadoUnidad(estado: number) {
   return "Disponible"
 }
 
+export function etiquetaColoresUnidad(
+  colorPrimario: ColorUnidad | null | undefined,
+  colorSecundario: ColorUnidad | null | undefined,
+) {
+  const nombres = [colorPrimario, colorSecundario]
+    .filter((color): color is ColorUnidad => Boolean(color))
+    .map((color) => COLORES_UNIDAD.find((item) => item.value === color)?.label ?? color)
+
+  return nombres.length > 0 ? nombres.join(" + ") : "Sin color"
+}
+
 export function toDateInput(value: string | null | undefined) {
   if (!value) return ""
   return value.slice(0, 10)
@@ -118,6 +158,9 @@ export async function crearHerramienta(values: HerramientaFormValues) {
       unidades: (values.unidades ?? []).map((unidad) => ({
         marca_id: unidad.marca_id,
         ubicacion_id: unidad.ubicacion_id,
+        color_primario: colorPayload(unidad.color_primario),
+        color_secundario: colorPayload(unidad.color_secundario),
+        tamano: unidad.tamano.trim() || null,
         fecha_calibracion: unidad.fecha_calibracion || null,
         proxima_calibracion: unidad.proxima_calibracion || null,
         observaciones: null,
@@ -197,6 +240,9 @@ export async function actualizarUnidad(id: string, values: UnidadFormValues) {
       body: {
         marca_id: values.marca_id,
         ubicacion_id: values.ubicacion_id,
+        color_primario: colorPayload(values.color_primario),
+        color_secundario: colorPayload(values.color_secundario),
+        tamano: values.tamano.trim() || null,
         fecha_calibracion: values.fecha_calibracion || null,
         proxima_calibracion: values.proxima_calibracion || null,
         observaciones: null,
@@ -216,8 +262,15 @@ function unidadPayload(values: UnidadFormValues) {
     herramienta_id: values.herramienta_id,
     marca_id: values.marca_id,
     ubicacion_id: values.ubicacion_id,
+    color_primario: colorPayload(values.color_primario),
+    color_secundario: colorPayload(values.color_secundario),
+    tamano: values.tamano.trim() || null,
     fecha_calibracion: values.fecha_calibracion || null,
     proxima_calibracion: values.proxima_calibracion || null,
     observaciones: null,
   }
+}
+
+function colorPayload(color: ColorUnidadSeleccion) {
+  return color === SIN_COLOR ? null : color
 }

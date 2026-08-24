@@ -2,6 +2,10 @@ import { useEffect, useState, type FormEvent } from "react"
 
 import { Button } from "@/components/ui/button"
 import {
+  NamedSelect,
+  type NamedOption,
+} from "@/components/form/named-select"
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -22,6 +26,10 @@ type ModalCatalogoProps = {
   isSubmitting: boolean
   formError: string
   nombreError: string
+  parentError?: string
+  jerarquico?: boolean
+  parentOptions?: NamedOption[]
+  initialParentId?: string | null
   onOpenChange: (open: boolean) => void
   onSubmit: (values: CatalogoFormValues) => void
 }
@@ -35,12 +43,17 @@ export function ModalCatalogo({
   isSubmitting,
   formError,
   nombreError,
+  parentError,
+  jerarquico = false,
+  parentOptions = [],
+  initialParentId = null,
   onOpenChange,
   onSubmit,
 }: ModalCatalogoProps) {
   const isEditing = Boolean(item)
   const [nombre, setNombre] = useState("")
   const [descripcion, setDescripcion] = useState("")
+  const [parentId, setParentId] = useState("__root__")
   const [localNombreError, setLocalNombreError] = useState("")
 
   useEffect(() => {
@@ -48,8 +61,9 @@ export function ModalCatalogo({
 
     setNombre(item?.nombre ?? "")
     setDescripcion(item?.descripcion ?? "")
+    setParentId(item?.parent_id ?? initialParentId ?? "__root__")
     setLocalNombreError("")
-  }, [item, open])
+  }, [initialParentId, item, open])
 
   const closeModal = () => {
     if (isSubmitting) return
@@ -69,12 +83,16 @@ export function ModalCatalogo({
     onSubmit({
       nombre: nombreValue,
       descripcion: descripcion.trim(),
+      parent_id: jerarquico && parentId !== "__root__" ? parentId : null,
     })
   }
 
   const shownNombreError = localNombreError || nombreError
   const shownFormError =
     formError && formError !== shownNombreError ? formError : ""
+  const selectedParent = parentOptions.find((option) => option.id === parentId)
+  const singularCapitalizado =
+    singular.charAt(0).toLocaleUpperCase("es") + singular.slice(1)
 
   return (
     <Dialog
@@ -113,6 +131,15 @@ export function ModalCatalogo({
             </div>
           ) : null}
 
+          {!isEditing && initialParentId && selectedParent ? (
+            <div className="rounded-lg border bg-muted/50 px-3 py-2 text-sm">
+              <span className="text-muted-foreground">
+                {singularCapitalizado} padre:
+              </span>{" "}
+              <span className="font-semibold">{selectedParent.nombre}</span>
+            </div>
+          ) : null}
+
           <div className="space-y-2">
             <label htmlFor="catalogo-nombre" className="text-sm font-medium">
               Nombre
@@ -133,6 +160,29 @@ export function ModalCatalogo({
               <p className="text-sm text-destructive">{shownNombreError}</p>
             ) : null}
           </div>
+
+          {jerarquico ? (
+            <div className="space-y-2">
+              <label htmlFor="catalogo-padre" className="text-sm font-medium">
+                Padre
+                <span className="ml-1 font-normal text-muted-foreground">
+                  (opcional)
+                </span>
+              </label>
+              <NamedSelect
+                id="catalogo-padre"
+                value={parentId}
+                options={[
+                  { id: "__root__", nombre: "Sin padre (raíz)" },
+                  ...parentOptions,
+                ]}
+                placeholder="Selecciona un padre"
+                disabled={isSubmitting}
+                error={parentError}
+                onChange={setParentId}
+              />
+            </div>
+          ) : null}
 
           <div className="space-y-2">
             <label

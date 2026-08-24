@@ -4,6 +4,13 @@ import { type CatalogoItem } from "@/lib/catalogo"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
   Table,
   TableBody,
   TableCell,
@@ -12,11 +19,19 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
+import {
+  COLORES_UNIDAD,
+  SIN_COLOR,
+  type ColorUnidadSeleccion,
+} from "@/lib/herramientas"
 import { Pencil, Plus, Trash2 } from "lucide-react"
 
 export type UnidadCamposValues = {
   marca_id: string
   ubicacion_id: string
+  color_primario: ColorUnidadSeleccion
+  color_secundario: ColorUnidadSeleccion
+  tamano: string
   requiere_calibracion: boolean
   fecha_calibracion: string
   proxima_calibracion: string
@@ -29,6 +44,9 @@ export function unidadCamposVacia(marcas: NamedOption[], ubicaciones: NamedOptio
   return {
     marca_id: marcas[0]?.id ?? "",
     ubicacion_id: ubicaciones[0]?.id ?? "",
+    color_primario: SIN_COLOR,
+    color_secundario: SIN_COLOR,
+    tamano: "",
     requiere_calibracion: false,
     fecha_calibracion: "",
     proxima_calibracion: "",
@@ -41,6 +59,15 @@ export function validarUnidadCampos(values: UnidadCamposValues): UnidadCamposErr
 
   if (!values.marca_id) errors.marca_id = "Selecciona una marca."
   if (!values.ubicacion_id) errors.ubicacion_id = "Selecciona una ubicación."
+  if (
+    values.color_primario !== SIN_COLOR &&
+    values.color_primario === values.color_secundario
+  ) {
+    errors.color_secundario = "Selecciona un color diferente."
+  }
+  if (values.tamano.trim().length > 50) {
+    errors.tamano = "El tamaño no puede superar 50 caracteres."
+  }
 
   if (values.requiere_calibracion) {
     if (!values.fecha_calibracion) {
@@ -130,6 +157,54 @@ export function UnidadCampos({
         </div>
       </div>
 
+      <div className="grid gap-4 sm:grid-cols-2">
+        <ColorSelect
+          id={`${idPrefix}-color-primario`}
+          label="Color principal"
+          value={values.color_primario}
+          disabled={disabled}
+          error={errors.color_primario}
+          onChange={(value) => {
+            onChange({
+              ...values,
+              color_primario: value,
+              color_secundario:
+                value === SIN_COLOR ? SIN_COLOR : values.color_secundario,
+            })
+          }}
+        />
+        <ColorSelect
+          id={`${idPrefix}-color-secundario`}
+          label="Segundo color"
+          value={values.color_secundario}
+          disabled={disabled || values.color_primario === SIN_COLOR}
+          error={errors.color_secundario}
+          onChange={(value) => set("color_secundario", value)}
+        />
+      </div>
+
+      <div className="space-y-2">
+        <label htmlFor={`${idPrefix}-tamano`} className="text-sm font-medium">
+          Tamaño
+          <span className="ml-1 font-normal text-muted-foreground">
+            (opcional)
+          </span>
+        </label>
+        <Input
+          id={`${idPrefix}-tamano`}
+          className="h-8"
+          maxLength={50}
+          placeholder='Ej. 11 mm, 3/8" o grande'
+          value={values.tamano}
+          disabled={disabled}
+          aria-invalid={Boolean(errors.tamano)}
+          onChange={(event) => set("tamano", event.target.value)}
+        />
+        {errors.tamano ? (
+          <p className="text-sm text-destructive">{errors.tamano}</p>
+        ) : null}
+      </div>
+
       <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
         <label htmlFor={`${idPrefix}-requiere-calibracion`} className="text-sm font-medium">
           ¿Requiere calibración?
@@ -210,6 +285,8 @@ export type UnidadTablaFila = {
   id: string
   marca: string
   ubicacion: string
+  colores?: string
+  tamano?: string
   calibracion?: string
   observaciones?: string
   estado?: string
@@ -238,6 +315,8 @@ export function UnidadesMiniTabla({
           <TableRow className="hover:bg-transparent">
             <TableHead>Marca</TableHead>
             <TableHead>Ubicación</TableHead>
+            <TableHead>Color</TableHead>
+            <TableHead>Tamaño</TableHead>
             <TableHead>Calibración</TableHead>
             {mostrarEstado ? <TableHead>Estado</TableHead> : null}
             <TableHead className="w-[88px] text-right">Acciones</TableHead>
@@ -247,7 +326,7 @@ export function UnidadesMiniTabla({
           {filas.length === 0 ? (
             <TableRow className="hover:bg-transparent">
               <TableCell
-                colSpan={mostrarEstado ? 5 : 4}
+                colSpan={mostrarEstado ? 7 : 6}
                 className="h-16 text-center text-muted-foreground"
               >
                 {emptyMessage}
@@ -258,6 +337,8 @@ export function UnidadesMiniTabla({
               <TableRow key={fila.id}>
                 <TableCell className="font-medium">{fila.marca}</TableCell>
                 <TableCell>{fila.ubicacion}</TableCell>
+                <TableCell>{fila.colores || "Sin color"}</TableCell>
+                <TableCell>{fila.tamano || "—"}</TableCell>
                 <TableCell className="text-muted-foreground">
                   {fila.calibracion || "—"}
                 </TableCell>
@@ -297,6 +378,49 @@ export function UnidadesMiniTabla({
           )}
         </TableBody>
       </Table>
+    </div>
+  )
+}
+
+function ColorSelect({
+  id,
+  label,
+  value,
+  disabled,
+  error,
+  onChange,
+}: {
+  id: string
+  label: string
+  value: ColorUnidadSeleccion
+  disabled?: boolean
+  error?: string
+  onChange: (value: ColorUnidadSeleccion) => void
+}) {
+  return (
+    <div className="space-y-2">
+      <label htmlFor={id} className="text-sm font-medium">
+        {label}
+      </label>
+      <Select
+        value={value}
+        disabled={disabled}
+        onValueChange={(nextValue) => {
+          if (nextValue) onChange(nextValue as ColorUnidadSeleccion)
+        }}
+      >
+        <SelectTrigger id={id} className="h-8" aria-invalid={Boolean(error)}>
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent alignItemWithTrigger={false}>
+          {COLORES_UNIDAD.map((color) => (
+            <SelectItem key={color.value} value={color.value}>
+              {color.label}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
     </div>
   )
 }

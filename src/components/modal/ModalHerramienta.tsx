@@ -23,6 +23,8 @@ import {
 import { Input } from "@/components/ui/input"
 import { type CatalogoItem } from "@/lib/catalogo"
 import {
+  etiquetaColoresUnidad,
+  SIN_COLOR,
   type Herramienta,
   type HerramientaFormValues,
   type UnidadBorrador,
@@ -97,7 +99,9 @@ export function ModalHerramienta({
   const nombreMarca = (id: string) =>
     marcas.find((marca) => marca.id === id)?.nombre ?? "—"
   const nombreUbicacion = (id: string) =>
-    ubicaciones.find((ubicacion) => ubicacion.id === id)?.nombre ?? "—"
+    ubicaciones.find((ubicacion) => ubicacion.id === id)?.ruta
+      ?? ubicaciones.find((ubicacion) => ubicacion.id === id)?.nombre
+      ?? "—"
 
   const handleAgregarUnidad = () => {
     const errors = validarUnidadCampos(unidadCampos)
@@ -122,6 +126,7 @@ export function ModalHerramienta({
     setUnidadCampos({
       ...unidadCampos,
       requiere_calibracion: false,
+      tamano: "",
       fecha_calibracion: "",
       proxima_calibracion: "",
       observaciones: "",
@@ -174,7 +179,7 @@ export function ModalHerramienta({
         onOpenChange(true)
       }}
     >
-      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? "Editar herramienta" : "Agregar herramienta"}
@@ -288,6 +293,11 @@ export function ModalHerramienta({
                   id: unidad.key,
                   marca: nombreMarca(unidad.marca_id),
                   ubicacion: nombreUbicacion(unidad.ubicacion_id),
+                  colores: etiquetaColoresUnidad(
+                    unidad.color_primario === SIN_COLOR ? null : unidad.color_primario,
+                    unidad.color_secundario === SIN_COLOR ? null : unidad.color_secundario,
+                  ),
+                  tamano: unidad.tamano,
                   calibracion: unidad.proxima_calibracion || unidad.fecha_calibracion,
                   observaciones: unidad.observaciones,
                 }))}
@@ -298,6 +308,9 @@ export function ModalHerramienta({
                   setUnidadCampos({
                     marca_id: unidad.marca_id,
                     ubicacion_id: unidad.ubicacion_id,
+                    color_primario: unidad.color_primario,
+                    color_secundario: unidad.color_secundario,
+                    tamano: unidad.tamano,
                     requiere_calibracion: Boolean(
                       unidad.fecha_calibracion || unidad.proxima_calibracion,
                     ),

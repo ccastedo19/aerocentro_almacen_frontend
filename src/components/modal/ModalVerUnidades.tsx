@@ -27,9 +27,11 @@ import {
   actualizarUnidad,
   crearUnidad,
   eliminarUnidad,
+  etiquetaColoresUnidad,
   etiquetaEstadoUnidad,
   listarUnidades,
   obtenerHerramienta,
+  SIN_COLOR,
   toDateInput,
   UNIDAD_ESTADO_PRESTADA,
   type Herramienta,
@@ -173,7 +175,7 @@ export function ModalVerUnidades({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-4xl">
           <DialogHeader>
             <DialogTitle>Unidades de {herramienta?.nombre ?? "la herramienta"}</DialogTitle>
             <DialogDescription>
@@ -232,7 +234,16 @@ export function ModalVerUnidades({
                 filas={unidades.map((unidad) => ({
                   id: unidad.id,
                   marca: unidad.marca?.nombre ?? "—",
-                  ubicacion: unidad.ubicacion?.nombre ?? "—",
+                  ubicacion:
+                    ubicaciones.find((item) => item.id === unidad.ubicacion_id)
+                      ?.ruta
+                    ?? unidad.ubicacion?.nombre
+                    ?? "—",
+                  colores: etiquetaColoresUnidad(
+                    unidad.color_primario,
+                    unidad.color_secundario,
+                  ),
+                  tamano: unidad.tamano ?? "",
                   calibracion:
                     toDateInput(unidad.proxima_calibracion) ||
                     toDateInput(unidad.fecha_calibracion),
@@ -248,6 +259,9 @@ export function ModalVerUnidades({
                   setUnidadCampos({
                     marca_id: unidad.marca_id,
                     ubicacion_id: unidad.ubicacion_id,
+                    color_primario: unidad.color_primario ?? SIN_COLOR,
+                    color_secundario: unidad.color_secundario ?? SIN_COLOR,
+                    tamano: unidad.tamano ?? "",
                     requiere_calibracion: Boolean(
                       unidad.fecha_calibracion || unidad.proxima_calibracion,
                     ),

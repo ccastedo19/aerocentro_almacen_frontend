@@ -1,9 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { MoreHorizontal, Pencil, Plus, Search, Trash2 } from "lucide-react"
+import {
+  FolderTree,
+  List,
+  MoreHorizontal,
+  Pencil,
+  Plus,
+  Search,
+  Trash2,
+} from "lucide-react"
 import { createColumnHelper } from "@tanstack/react-table"
 
 import { ModalCatalogo } from "@/components/modal/ModalCatalogo"
 import { ModalConfirmarEliminar } from "@/components/modal/ModalConfirmarEliminar"
+import { CatalogoTree } from "@/components/catalogo/CatalogoTree"
 import { AlertError } from "@/components/ui/alert-error"
 import { PagePreloader } from "@/components/ui/page-preloader"
 import { Button } from "@/components/ui/button"
@@ -25,6 +34,12 @@ import {
   type CatalogoFormValues,
   type CatalogoItem,
 } from "@/lib/catalogo"
+import {
+  construirArbolCatalogo,
+  idsDescendientes,
+  opcionesCatalogoConRuta,
+  rutaCatalogo,
+} from "@/lib/catalogo-tree"
 
 export type CatalogoPageProps = {
   titulo: string
@@ -35,6 +50,7 @@ export type CatalogoPageProps = {
   searchPlaceholder: string
   nombrePlaceholder: string
   descripcionPlaceholder: string
+  jerarquico?: boolean
 }
 
 export function CatalogoPage({
@@ -46,6 +62,7 @@ export function CatalogoPage({
   searchPlaceholder,
   nombrePlaceholder,
   descripcionPlaceholder,
+  jerarquico = false,
 }: CatalogoPageProps) {
   const [items, setItems] = useState<CatalogoItem[]>([])
   const [search, setSearch] = useState("")
@@ -59,6 +76,9 @@ export function CatalogoPage({
   const [formError, setFormError] = useState("")
   const [nombreError, setNombreError] = useState("")
   const [deleteError, setDeleteError] = useState("")
+  const [parentError, setParentError] = useState("")
+  const [initialParentId, setInitialParentId] = useState<string | null>(null)
+  const [vista, setVista] = useState<"tabla" | "arbol">("tabla")
 
   const loadItems = useCallback(async () => {
     const data = await listarCatalogo(resourcePath)
@@ -100,6 +120,18 @@ export function CatalogoPage({
           <span className="font-medium">{getValue()}</span>
         ),
       }),
+      ...(jerarquico
+        ? [
+            columnHelper.accessor((item) => rutaCatalogo(item.id, items), {
+              id: "ruta",
+              header: "Ruta",
+              sortFn: "text",
+              cell: ({ getValue }) => (
+                <span className="text-muted-foreground">{getValue()}</span>
+              ),
+            }),
+          ]
+        : []),
       columnHelper.accessor("descripcion", {
         header: "Descripción",
         sortFn: "text",
@@ -139,6 +171,7 @@ export function CatalogoPage({
                   setEditingItem(row.original)
                   setFormError("")
                   setNombreError("")
+                  setParentError("")
                   setIsFormOpen(true)
                 }}
               >
@@ -160,7 +193,18 @@ export function CatalogoPage({
         ),
       }),
     ])
-  }, [])
+  }, [items, jerarquico])
+
+  const arbol = useMemo(() => construirArbolCatalogo(items), [items])
+  const parentOptions = useMemo(() => {
+    const excluidos = editingItem
+      ? idsDescendientes(editingItem.id, items).add(editingItem.id)
+      : new Set<string>()
+
+    return opcionesCatalogoConRuta(
+      items.filter((item) => !excluidos.has(item.id)),
+    ).map((item) => ({ ...item, nombre: item.ruta }))
+  }, [editingItem, items])
 
   const hasSearch = search.trim().length > 0
 
@@ -168,6 +212,7 @@ export function CatalogoPage({
     setIsSaving(true)
     setFormError("")
     setNombreError("")
+    setParentError("")
 
     try {
       if (editingItem) {
@@ -179,9 +224,11 @@ export function CatalogoPage({
       await loadItems()
       setIsFormOpen(false)
       setEditingItem(null)
+      setInitialParentId(null)
     } catch (error) {
       if (error instanceof ApiError) {
         setNombreError(error.errors.nombre?.[0] ?? "")
+        setParentError(error.errors.parent_id?.[0] ?? "")
         setFormError(error.message)
         return
       }
@@ -244,37 +291,98 @@ export function CatalogoPage({
             />
           </div>
 
-          <Button
-            size="lg"
-            className="h-9 sm:shrink-0"
-            onClick={() => {
-              setEditingItem(null)
-              setFormError("")
-              setNombreError("")
-              setIsFormOpen(true)
-            }}
-          >
-            <Plus data-icon="inline-start" />
-            Agregar {singular}
-          </Button>
+          <div className="flex shrink-0 items-center gap-2">
+            {jerarquico ? (
+              <div className="flex rounded-lg border p-0.5">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={vista === "tabla" ? "secondary" : "ghost"}
+                  aria-label="Ver como tabla"
+                  onClick={() => setVista("tabla")}
+                >
+                  <List />
+                  Tabla
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={vista === "arbol" ? "secondary" : "ghost"}
+                  aria-label="Ver como árbol"
+                  onClick={() => setVista("arbol")}
+                >
+                  <FolderTree />
+                  Árbol
+                </Button>
+              </div>
+            ) : null}
+
+            <Button
+              size="lg"
+              className="h-9 sm:shrink-0"
+              onClick={() => {
+                setEditingItem(null)
+                setInitialParentId(null)
+                setFormError("")
+                setNombreError("")
+                setParentError("")
+                setIsFormOpen(true)
+              }}
+            >
+              <Plus data-icon="inline-start" />
+              Agregar {singular}
+            </Button>
+          </div>
         </div>
 
-        <DataTable
-          columns={columns}
-          data={items}
-          search={search}
-          pageSizeOptions={[5, 10, 20]}
-          emptyMessage={
-            hasSearch
-              ? `No se encontraron ${plural}`
-              : `No hay ${plural} registradas`
-          }
-          emptyDescription={
-            hasSearch
-              ? "Intenta con otro nombre o descripción."
-              : `Agrega la primera ${singular} para comenzar.`
-          }
-        />
+        {jerarquico && vista === "arbol" ? (
+          <CatalogoTree
+            nodes={arbol}
+            search={search}
+            emptyMessage={
+              hasSearch
+                ? `No se encontraron ${plural}`
+                : `No hay ${plural} registradas`
+            }
+            onEdit={(item) => {
+              setEditingItem(item)
+              setInitialParentId(null)
+              setFormError("")
+              setNombreError("")
+              setParentError("")
+              setIsFormOpen(true)
+            }}
+            onAddChild={(item) => {
+              setEditingItem(null)
+              setInitialParentId(item.id)
+              setFormError("")
+              setNombreError("")
+              setParentError("")
+              setIsFormOpen(true)
+            }}
+            onDelete={(item) => {
+              setDeletingItem(item)
+              setDeleteError("")
+            }}
+          />
+        ) : (
+          <DataTable
+            columns={columns}
+            data={items}
+            search={search}
+            pageSizeOptions={[5, 10, 20]}
+            emptyMessage={
+              hasSearch
+                ? `No se encontraron ${plural}`
+                : `No hay ${plural} registradas`
+            }
+            emptyDescription={
+              hasSearch
+                ? "Intenta con otro nombre o descripción."
+                : `Agrega la primera ${singular} para comenzar.`
+            }
+          />
+        )}
       </section>
 
       <ModalCatalogo
@@ -286,10 +394,17 @@ export function CatalogoPage({
         isSubmitting={isSaving}
         formError={formError}
         nombreError={nombreError}
+        parentError={parentError}
+        jerarquico={jerarquico}
+        parentOptions={parentOptions}
+        initialParentId={initialParentId}
         onOpenChange={(open) => {
           if (!open && isSaving) return
           setIsFormOpen(open)
-          if (!open) setEditingItem(null)
+          if (!open) {
+            setEditingItem(null)
+            setInitialParentId(null)
+          }
         }}
         onSubmit={handleSubmit}
       />
