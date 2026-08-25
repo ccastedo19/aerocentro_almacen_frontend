@@ -1,4 +1,4 @@
-import { api } from "@/lib/api"
+import { api, listarTodosPaginados } from "@/lib/api"
 
 export const MECANICO_ESTADO_ELIMINADO = 0
 export const MECANICO_ESTADO_ACTIVO = 1
@@ -44,10 +44,6 @@ export type MecanicoFormValues = {
   eliminar_imagen?: boolean
 }
 
-type LaravelPaginated<T> = {
-  data: T[]
-}
-
 type MecanicoResponse = {
   mecanico: Mecanico
 }
@@ -74,12 +70,7 @@ export function etiquetaEstadoMecanico(estado: number) {
 }
 
 export async function listarMecanicos() {
-  const query = new URLSearchParams({ por_pagina: "100" })
-  const respuesta = await api<LaravelPaginated<Mecanico>>(
-    `${RESOURCE}?${query.toString()}`,
-  )
-
-  return respuesta.data
+  return listarTodosPaginados<Mecanico>(RESOURCE)
 }
 
 export async function crearMecanico(values: MecanicoFormValues) {

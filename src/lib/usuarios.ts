@@ -1,4 +1,4 @@
-import { api } from "@/lib/api"
+import { api, listarTodosPaginados } from "@/lib/api"
 import { type Rol, type Usuario } from "@/lib/auth"
 
 export const USUARIO_ESTADO_ELIMINADO = 0
@@ -13,10 +13,6 @@ export type UsuarioFormValues = {
   rol_id: string
   password?: string
   password_confirmation?: string
-}
-
-type LaravelPaginated<T> = {
-  data: T[]
 }
 
 type UsuarioResponse = {
@@ -36,12 +32,9 @@ export function etiquetaEstadoUsuario(estado: number) {
 }
 
 export async function listarUsuarios() {
-  const query = new URLSearchParams({ por_pagina: "100" })
-  const respuesta = await api<LaravelPaginated<Usuario>>(
-    `${RESOURCE}?${query.toString()}`,
-  )
+  const usuarios = await listarTodosPaginados<Usuario>(RESOURCE)
 
-  return respuesta.data.filter(
+  return usuarios.filter(
     (usuario) => usuario.estado !== USUARIO_ESTADO_ELIMINADO,
   )
 }

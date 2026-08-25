@@ -1,4 +1,4 @@
-import { api } from "@/lib/api"
+import { api, listarTodosPaginados } from "@/lib/api"
 
 export const HERRAMIENTA_ESTADO_ELIMINADO = 0
 export const HERRAMIENTA_ESTADO_ACTIVO = 1
@@ -20,6 +20,7 @@ export const COLORES_UNIDAD = [
   { value: "blanco", label: "Blanco" },
   { value: "negro", label: "Negro" },
   { value: "naranja", label: "Naranja" },
+  { value: "camuflado", label: "Camuflado" },
 ] as const
 
 export type ColorUnidad = Exclude<
@@ -99,10 +100,6 @@ export type UnidadFormValues = {
   observaciones: string
 }
 
-type LaravelPaginated<T> = {
-  data: T[]
-}
-
 type HerramientaResponse = {
   herramienta: Herramienta
 }
@@ -140,12 +137,7 @@ export function toDateInput(value: string | null | undefined) {
 }
 
 export async function listarHerramientas() {
-  const query = new URLSearchParams({ por_pagina: "100" })
-  const respuesta = await api<LaravelPaginated<Herramienta>>(
-    `/api/herramientas?${query.toString()}`,
-  )
-
-  return respuesta.data
+  return listarTodosPaginados<Herramienta>("/api/herramientas")
 }
 
 export async function crearHerramienta(values: HerramientaFormValues) {
@@ -210,17 +202,16 @@ export async function obtenerHerramienta(id: string) {
 }
 
 export async function listarUnidades(herramientaId?: string) {
-  const query = new URLSearchParams({ por_pagina: "100" })
+  const query = new URLSearchParams()
 
   if (herramientaId) {
     query.set("herramienta_id", herramientaId)
   }
 
-  const respuesta = await api<LaravelPaginated<HerramientaUnidad>>(
-    `/api/herramientas-unidades?${query.toString()}`,
+  return listarTodosPaginados<HerramientaUnidad>(
+    "/api/herramientas-unidades",
+    query,
   )
-
-  return respuesta.data
 }
 
 export async function crearUnidad(values: UnidadFormValues) {

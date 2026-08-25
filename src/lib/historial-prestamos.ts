@@ -1,4 +1,4 @@
-import { api } from "@/lib/api"
+import { api, listarTodosPaginados } from "@/lib/api"
 
 export const MOVIMIENTO_DEVUELTO = 0
 export const MOVIMIENTO_EN_CURSO = 1
@@ -71,6 +71,9 @@ export type LineaKardex = {
 
 type LaravelPaginated<T> = {
   data: T[]
+  current_page: number
+  last_page: number
+  total: number
 }
 
 type HistorialDetalleHerramientaResponse = {
@@ -163,46 +166,58 @@ export function toLineasKardex(movimientos: MovimientoPrestamo[]): LineaKardex[]
 }
 
 export async function listarHistorialHerramientas() {
-  const query = new URLSearchParams({ por_pagina: "100" })
-  const respuesta = await api<LaravelPaginated<HerramientaHistorial>>(
-    `/api/prestamos/historial?${query.toString()}`,
-  )
-
-  return respuesta.data
+  return listarTodosPaginados<HerramientaHistorial>("/api/prestamos/historial")
 }
 
 export async function listarHistorialMecanicos() {
-  const query = new URLSearchParams({ por_pagina: "100" })
-  const respuesta = await api<LaravelPaginated<MecanicoHistorial>>(
-    `/api/prestamos/historial/mecanicos?${query.toString()}`,
+  return listarTodosPaginados<MecanicoHistorial>(
+    "/api/prestamos/historial/mecanicos",
   )
-
-  return respuesta.data
 }
 
 export async function listarHistorialGeneral() {
-  const query = new URLSearchParams({ por_pagina: "100" })
-  const respuesta = await api<LaravelPaginated<MovimientoPrestamo>>(
-    `/api/prestamos/historial/general?${query.toString()}`,
+  return listarTodosPaginados<MovimientoPrestamo>(
+    "/api/prestamos/historial/general",
   )
-
-  return respuesta.data
 }
 
 export async function listarMovimientosHerramienta(herramientaId: string) {
-  const query = new URLSearchParams({ por_pagina: "100" })
-  const respuesta = await api<HistorialDetalleHerramientaResponse>(
-    `/api/prestamos/historial/${herramientaId}?${query.toString()}`,
+  return listarDetalleCompleto<HistorialDetalleHerramientaResponse>(
+    `/api/prestamos/historial/${herramientaId}`,
   )
-
-  return respuesta
 }
 
 export async function listarMovimientosMecanico(mecanicoId: string) {
-  const query = new URLSearchParams({ por_pagina: "100" })
-  const respuesta = await api<HistorialDetalleMecanicoResponse>(
-    `/api/prestamos/historial/mecanicos/${mecanicoId}?${query.toString()}`,
+  return listarDetalleCompleto<HistorialDetalleMecanicoResponse>(
+    `/api/prestamos/historial/mecanicos/${mecanicoId}`,
+  )
+}
+
+async function listarDetalleCompleto<
+  T extends { movimientos: LaravelPaginated<MovimientoPrestamo> },
+>(path: string) {
+  const crearRuta = (page: number) =>
+    `${path}?${new URLSearchParams({
+      por_pagina: "100",
+      page: String(page),
+    }).toString()}`
+  const primera = await api<T>(crearRuta(1))
+
+  if (primera.movimientos.last_page <= 1) return primera
+
+  const restantes = await Promise.all(
+    Array.from({ length: primera.movimientos.last_page - 1 }, (_, index) =>
+      api<T>(crearRuta(index + 2)),
+    ),
   )
 
-  return respuesta
+  return {
+    ...primera,
+    movimientos: {
+      ...primera.movimientos,
+      data: [primera, ...restantes].flatMap(
+        (respuesta) => respuesta.movimientos.data,
+      ),
+    },
+  }
 }

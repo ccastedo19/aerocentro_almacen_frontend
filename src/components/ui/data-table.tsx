@@ -1,5 +1,13 @@
 import { useEffect } from "react"
-import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, ChevronsUpDown } from "lucide-react"
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  ChevronsUpDown,
+} from "lucide-react"
 import {
   useTable,
   type ColumnDef,
@@ -221,6 +229,16 @@ export function DataTable<TData extends RowData>({
               type="button"
               variant="outline"
               size="icon-sm"
+              aria-label="Primera página"
+              disabled={!table.getCanPreviousPage()}
+              onClick={() => table.setPageIndex(0)}
+            >
+              <ChevronsLeft />
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-sm"
               aria-label="Página anterior"
               disabled={!table.getCanPreviousPage()}
               onClick={() => table.previousPage()}
@@ -236,6 +254,16 @@ export function DataTable<TData extends RowData>({
               onClick={() => table.nextPage()}
             >
               <ChevronRight />
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="icon-sm"
+              aria-label="Última página"
+              disabled={!table.getCanNextPage()}
+              onClick={() => table.setPageIndex(Math.max(0, pageCount - 1))}
+            >
+              <ChevronsRight />
             </Button>
           </div>
         </div>

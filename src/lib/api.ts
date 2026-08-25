@@ -47,6 +47,38 @@ export async function api<T>(path: string, options: RequestOptions = {}) {
   return request
 }
 
+type LaravelPaginated<T> = {
+  data: T[]
+  current_page: number
+  last_page: number
+  total: number
+}
+
+export async function listarTodosPaginados<T>(
+  path: string,
+  query = new URLSearchParams(),
+) {
+  const crearRuta = (page: number) => {
+    const params = new URLSearchParams(query)
+    params.set("por_pagina", "100")
+    params.set("page", String(page))
+
+    return `${path}?${params.toString()}`
+  }
+
+  const primera = await api<LaravelPaginated<T>>(crearRuta(1))
+
+  if (primera.last_page <= 1) return primera.data
+
+  const restantes = await Promise.all(
+    Array.from({ length: primera.last_page - 1 }, (_, index) =>
+      api<LaravelPaginated<T>>(crearRuta(index + 2)),
+    ),
+  )
+
+  return [primera, ...restantes].flatMap((pagina) => pagina.data)
+}
+
 export async function downloadApi(
   path: string,
   options: RequestOptions = {},

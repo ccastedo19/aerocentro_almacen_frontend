@@ -1,4 +1,4 @@
-import { api } from "@/lib/api"
+import { api, listarTodosPaginados } from "@/lib/api"
 
 export type CatalogoItem = {
   id: string
@@ -19,17 +19,8 @@ export type CatalogoFormValues = {
   parent_id: string | null
 }
 
-type LaravelPaginated<T> = {
-  data: T[]
-}
-
 export async function listarCatalogo(path: string) {
-  const query = new URLSearchParams({ por_pagina: "100" })
-  const respuesta = await api<LaravelPaginated<CatalogoItem>>(
-    `${path}?${query.toString()}`,
-  )
-
-  return respuesta.data
+  return listarTodosPaginados<CatalogoItem>(path)
 }
 
 type CrearCatalogoResponse = {
