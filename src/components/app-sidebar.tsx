@@ -1,11 +1,10 @@
 import * as React from 'react'
 import {
   House,
-  ChevronsUpDown,
+  Combine,
   DatabaseBackup,
   FolderTree,
   History,
-  LogOut,
   MapPin,
   Package,
   Tag,
@@ -13,27 +12,12 @@ import {
   Users,
   Wrench,
 } from 'lucide-react'
-import { useTheme } from "@/hooks/use-theme";
-import { Moon, Sun, Monitor } from "lucide-react";
 
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import logo from "@/assets/img/logo_aerocentro.jpg";
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuGroup,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-  DropdownMenuRadioGroup,
-  DropdownMenuRadioItem,
-} from "@/components/ui/dropdown-menu";
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupLabel,
   SidebarHeader,
@@ -41,11 +25,9 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
-  useSidebar,
 } from '@/components/ui/sidebar'
-import { ModalLogout } from "@/components/modal/ModalLogout"
 import { useAuth } from "@/hooks/use-auth"
-import { esAdministrador, getIniciales, getNombreCompleto } from "@/lib/auth"
+import { esAdministrador } from "@/lib/auth"
 
 const data = {
   teams: [
@@ -76,6 +58,11 @@ const data = {
           title: "Herramientas",
           url: "/herramientas",
           icon: Package,
+        },
+        {
+          title: "Combinadas",
+          url: "/combinadas",
+          icon: Combine,
         },
         {
           title: "Categorías",
@@ -203,6 +190,7 @@ function NavMain({
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
+                    className="sidebar-navigation-item"
                     tooltip={item.title}
                     isActive={pathname === item.url || (pathname === "/" && item.url === "/inicio")}
                     render={<Link to={item.url} />}
@@ -221,134 +209,6 @@ function NavMain({
 }
 
 
-function NavUser() {
-  const { isMobile } = useSidebar()
-  const { theme, setTheme } = useTheme()
-  const navigate = useNavigate()
-  const { usuario, logout } = useAuth()
-  const [isLogoutOpen, setIsLogoutOpen] = React.useState(false)
-  const [isLoggingOut, setIsLoggingOut] = React.useState(false)
-
-  if (!usuario) return null
-
-  const name = getNombreCompleto(usuario)
-  const initials = getIniciales(usuario)
-
-  const handleLogout = () => {
-    setIsLoggingOut(true)
-
-    void logout()
-      .then(() => {
-        navigate("/login", { replace: true })
-      })
-      .finally(() => {
-        setIsLoggingOut(false)
-        setIsLogoutOpen(false)
-      })
-  }
-
-  return (
-    <SidebarMenu>
-      <SidebarMenuItem>
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <SidebarMenuButton
-                size="lg"
-                className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground"
-              />
-            }
-          >
-            <Avatar className="h-8 w-8 rounded-lg dark:after:hidden">
-              <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
-            </Avatar>
-            <div className="grid flex-1 text-left text-sm leading-tight">
-              <span className="truncate font-medium">{name}</span>
-              <span className="truncate text-xs">{usuario.rol?.nombre ?? "Sin rol"}</span>
-            </div>
-            <ChevronsUpDown className="ml-auto size-4" />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            className="w-(--radix-dropdown-menu-trigger-width) min-w-56 rounded-lg"
-            side={isMobile ? 'bottom' : 'right'}
-            align="end"
-            sideOffset={4}
-          >
-            <DropdownMenuGroup>
-              <DropdownMenuLabel className="p-0 font-normal">
-                <div className="flex items-center gap-2 px-1 py-1.5 text-left text-sm">
-                  <Avatar className="h-8 w-8 rounded-lg dark:after:hidden">
-                    <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
-                  </Avatar>
-                  <div className="grid flex-1 text-left text-sm leading-tight">
-                    <span className="truncate font-medium">{name}</span>
-                    <span className="truncate text-xs">{usuario.rol?.nombre ?? "Sin rol"}</span>
-                  </div>
-                </div>
-              </DropdownMenuLabel>
-            </DropdownMenuGroup>
-            <DropdownMenuSeparator />
-
-              <DropdownMenuGroup>
-
-                <DropdownMenuLabel>
-                  Tema
-                </DropdownMenuLabel>
-
-                <DropdownMenuRadioGroup
-                  value={theme}
-                  onValueChange={(value) =>
-                    setTheme(value)
-                  }
-                >
-
-                  <DropdownMenuRadioItem value="light">
-                    <Sun />
-                    Claro
-                  </DropdownMenuRadioItem>
-
-
-                  <DropdownMenuRadioItem value="dark">
-                    <Moon />
-                    Oscuro
-                  </DropdownMenuRadioItem>
-
-
-                  <DropdownMenuRadioItem value="system">
-                    <Monitor />
-                    Sistema
-                  </DropdownMenuRadioItem>
-
-                </DropdownMenuRadioGroup>
-
-              </DropdownMenuGroup>
-              
-            <DropdownMenuSeparator />
-            <DropdownMenuGroup>
-              <DropdownMenuItem
-                variant="destructive"
-                onClick={() => setIsLogoutOpen(true)}
-              >
-                <LogOut />
-                Salir
-              </DropdownMenuItem>
-            </DropdownMenuGroup>
-          </DropdownMenuContent>
-        </DropdownMenu>
-        <ModalLogout
-          open={isLogoutOpen}
-          isSubmitting={isLoggingOut}
-          onOpenChange={(open) => {
-            if (!open && isLoggingOut) return
-            setIsLogoutOpen(open)
-          }}
-          onConfirm={handleLogout}
-        />
-      </SidebarMenuItem>
-    </SidebarMenu>
-  )
-}
-
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="offcanvas" {...props}>
@@ -358,9 +218,6 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       <SidebarContent>
         <NavMain groups={data.navGroups} />
       </SidebarContent>
-      <SidebarFooter>
-        <NavUser />
-      </SidebarFooter>
       <SidebarRail />
     </Sidebar>
   )

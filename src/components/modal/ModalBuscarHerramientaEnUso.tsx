@@ -13,7 +13,8 @@ import {
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { useClosingSnapshot } from "@/hooks/use-closing-snapshot"
-import { formatBorrowedAt, type PrestamoEnUso } from "@/lib/prestamos"
+import { formatBorrowedAt, compararPorBusquedaCorta, type PrestamoEnUso } from "@/lib/prestamos"
+import { DetalleUnidadPrestamo } from "@/components/prestamos/detalle-unidad-prestamo"
 
 type ModalBuscarHerramientaEnUsoProps = {
   open: boolean
@@ -47,23 +48,25 @@ export function ModalBuscarHerramientaEnUso({
 
   const filteredTools = useMemo(() => {
     const query = search.trim().toLocaleLowerCase()
+    const source = search.trim() ? usedTools : displayedTools
 
-    if (!query) return displayedTools
+    if (!query) return source
 
-    return usedTools.filter((item) => {
-      const haystack = [
-        item.nombre,
-        item.categoria,
-        item.detalle,
-        item.mechanicName,
-        item.mechanicArea,
-      ]
-        .join(" ")
-        .toLocaleLowerCase()
+    return source
+      .filter((item) => {
+        const haystack = [
+          item.nombre,
+          item.detalle,
+          item.mechanicName,
+          item.mechanicArea,
+        ]
+          .join(" ")
+          .toLocaleLowerCase()
 
-      return haystack.includes(query)
-    })
-  }, [displayedTools, search])
+        return haystack.includes(query)
+      })
+      .sort((a, b) => compararPorBusquedaCorta(a.nombre, b.nombre, query))
+  }, [displayedTools, search, usedTools])
 
   const closeModal = () => {
     onOpenChange(false)
@@ -81,7 +84,7 @@ export function ModalBuscarHerramientaEnUso({
         onOpenChange(true)
       }}
     >
-      <DialogContent className="max-h-[90vh] overflow-hidden sm:max-w-2xl">
+      <DialogContent className="flex h-[min(86vh,48rem)] w-[min(92vw,68rem)] max-w-none flex-col gap-4 overflow-hidden p-5 sm:max-w-none">
         <DialogHeader>
           <DialogTitle className="pr-8 text-lg">
             Buscar herramienta en uso
@@ -122,7 +125,7 @@ export function ModalBuscarHerramientaEnUso({
             Cargando herramientas en uso...
           </div>
         ) : filteredTools.length > 0 ? (
-          <div className="max-h-[52vh] space-y-2 overflow-y-auto pr-1">
+          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
             {filteredTools.map((item) => (
               <div
                 key={item.detalleId}
@@ -134,13 +137,15 @@ export function ModalBuscarHerramientaEnUso({
                   </div>
                   <div className="min-w-0">
                     <p className="truncate font-medium">{item.nombre}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {item.categoria}
-                      {item.detalle ? ` · ${item.detalle}` : ""}
-                      {item.borrowedAt
-                        ? ` · Prestada ${formatBorrowedAt(item.borrowedAt)}`
-                        : ""}
-                    </p>
+                    <DetalleUnidadPrestamo
+                      unidad={item.unidad}
+                      className="text-xs"
+                    />
+                    {item.borrowedAt ? (
+                      <p className="text-xs text-muted-foreground">
+                        Prestada {formatBorrowedAt(item.borrowedAt)}
+                      </p>
+                    ) : null}
                   </div>
                 </div>
 
@@ -183,7 +188,7 @@ export function ModalBuscarHerramientaEnUso({
           </div>
         )}
 
-        <DialogFooter>
+        <DialogFooter className="mt-auto">
           <Button variant="outline" onClick={closeModal}>
             Cerrar
           </Button>

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react"
 import { Download, RotateCcw, Upload } from "lucide-react"
+import { useNavigate } from "react-router-dom"
 
 import { ModalConfirmarRestaurarBackup } from "@/components/modal/ModalConfirmarRestaurarBackup"
 import { AlertError } from "@/components/ui/alert-error"
@@ -20,7 +21,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import { useAuth } from "@/hooks/use-auth"
 import { ApiError } from "@/lib/api"
+import { toastExito } from "@/lib/toast"
 import {
   descargarBackupActual,
   formatFechaBackup,
@@ -32,6 +35,8 @@ import {
 } from "@/lib/backups"
 
 export const Backup = () => {
+  const navigate = useNavigate()
+  const { logout } = useAuth()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [items, setItems] = useState<BackupItem[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -39,7 +44,6 @@ export const Backup = () => {
   const [isUploading, setIsUploading] = useState(false)
   const [isRestoring, setIsRestoring] = useState(false)
   const [pageError, setPageError] = useState("")
-  const [pageSuccess, setPageSuccess] = useState("")
   const [restoreError, setRestoreError] = useState("")
   const [usingItem, setUsingItem] = useState<BackupItem | null>(null)
 
@@ -76,12 +80,11 @@ export const Backup = () => {
   const handleDescargar = async () => {
     setIsDownloading(true)
     setPageError("")
-    setPageSuccess("")
 
     try {
       await descargarBackupActual()
       await loadItems()
-      setPageSuccess("Se descargó el SQL actual y quedó guardado en la tabla.")
+      toastExito("Backup descargado", "El SQL actual quedó guardado en la tabla.")
     } catch (error) {
       setPageError(
         error instanceof ApiError
@@ -98,12 +101,11 @@ export const Backup = () => {
 
     setIsUploading(true)
     setPageError("")
-    setPageSuccess("")
 
     try {
       await subirBackup(archivo)
       await loadItems()
-      setPageSuccess("El backup se cargó y ya aparece en la tabla.")
+      toastExito("Backup cargado", "El archivo ya aparece en la tabla.")
     } catch (error) {
       setPageError(
         error instanceof ApiError
@@ -125,9 +127,8 @@ export const Backup = () => {
     try {
       await restaurarBackup(usingItem.id)
       setUsingItem(null)
-      setPageSuccess(
-        "El backup se restauró. Recarga las demás páginas para ver los datos de esa fecha.",
-      )
+      await logout()
+      navigate("/login", { replace: true })
     } catch (error) {
       setRestoreError(
         error instanceof ApiError
@@ -155,15 +156,6 @@ export const Backup = () => {
 
       {pageError ? (
         <AlertError onClose={() => setPageError("")}>{pageError}</AlertError>
-      ) : null}
-
-      {pageSuccess ? (
-        <div
-          className="flex items-start gap-2 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-3 py-2 text-sm text-emerald-800 dark:text-emerald-200"
-          role="status"
-        >
-          <p className="min-w-0 flex-1">{pageSuccess}</p>
-        </div>
       ) : null}
 
       <section className="grid gap-4 xl:grid-cols-2">
@@ -204,7 +196,8 @@ export const Backup = () => {
                 </span>
                 <p>
                   <span className="font-medium">Usar</span> restaura esa copia y
-                  reemplaza los datos actuales. Esta acción no se puede
+                  reemplaza los datos actuales. Al terminar se cerrará tu sesión
+                  y tendrás que volver a iniciar. Esta acción no se puede
                   deshacer.
                 </p>
               </li>
@@ -234,7 +227,7 @@ export const Backup = () => {
               </Button>
               <Button
                 type="button"
-                variant="outline"
+                variant="info"
                 className="sm:flex-1"
                 disabled={isDownloading || isUploading}
                 onClick={() => fileInputRef.current?.click()}
@@ -288,7 +281,7 @@ export const Backup = () => {
                           <Button
                             type="button"
                             size="sm"
-                            variant="outline"
+                            variant="warning"
                             onClick={() => {
                               setRestoreError("")
                               setUsingItem(item)

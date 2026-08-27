@@ -156,7 +156,7 @@ export function HistorialPorMecanico({
         cell: ({ row }) => (
           <Button
             type="button"
-            variant="outline"
+            variant="info"
             size="sm"
             className="h-8"
             onClick={() => setViewingItem(row.original)}

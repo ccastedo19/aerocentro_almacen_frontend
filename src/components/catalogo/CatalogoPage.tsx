@@ -25,7 +25,9 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
+import { ICONO_ACCION } from "@/lib/acciones-color"
 import { ApiError } from "@/lib/api"
+import { toastExito } from "@/lib/toast"
 import {
   actualizarCatalogo,
   crearCatalogo,
@@ -51,6 +53,10 @@ export type CatalogoPageProps = {
   nombrePlaceholder: string
   descripcionPlaceholder: string
   jerarquico?: boolean
+}
+
+function capitalizar(texto: string) {
+  return texto.charAt(0).toUpperCase() + texto.slice(1)
 }
 
 export function CatalogoPage({
@@ -175,7 +181,7 @@ export function CatalogoPage({
                   setIsFormOpen(true)
                 }}
               >
-                <Pencil />
+                <Pencil className={ICONO_ACCION.editar} />
                 Editar
               </DropdownMenuItem>
               <DropdownMenuItem
@@ -217,8 +223,10 @@ export function CatalogoPage({
     try {
       if (editingItem) {
         await actualizarCatalogo(resourcePath, editingItem.id, values)
+        toastExito(`${capitalizar(singular)} actualizada correctamente.`)
       } else {
         await crearCatalogo(resourcePath, values)
+        toastExito(`${capitalizar(singular)} creada correctamente.`)
       }
 
       await loadItems()
@@ -249,6 +257,7 @@ export function CatalogoPage({
       await eliminarCatalogo(resourcePath, deletingItem.id)
       await loadItems()
       setDeletingItem(null)
+      toastExito(`${capitalizar(singular)} eliminada correctamente.`)
     } catch (error) {
       setDeleteError(
         error instanceof ApiError
@@ -337,6 +346,7 @@ export function CatalogoPage({
 
         {jerarquico && vista === "arbol" ? (
           <CatalogoTree
+            titulo={titulo}
             nodes={arbol}
             search={search}
             emptyMessage={

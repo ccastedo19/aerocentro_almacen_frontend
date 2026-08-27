@@ -1,6 +1,7 @@
 import { api } from "@/lib/api"
 import {
-  etiquetaColoresUnidad,
+  coloresUnidadVisibles,
+  etiquetaColorUnidad,
   type ColorUnidad,
 } from "@/lib/herramientas"
 import type { ColorMecanico } from "@/lib/mecanicos"
@@ -56,12 +57,24 @@ export type PrestamoEnUso = {
   detalleId: string
   unidadId: string
   nombre: string
-  categoria: string
   detalle: string
   borrowedAt: string
   mechanicId: string
   mechanicName: string
   mechanicArea: string
+  unidad?: UnidadPrestamo | null
+}
+
+export type HerramientaGeneral = {
+  unidadId: string
+  nombre: string
+  detalle: string
+  estado: "disponible" | "en_uso"
+  unidad?: UnidadPrestamo | null
+  detalleId?: string
+  borrowedAt?: string
+  mechanicName?: string
+  mechanicArea?: string
 }
 
 const ESTILOS_TARJETA: Record<ColorMecanico, { accent: string; badge: string }> = {
@@ -111,19 +124,74 @@ export function nombreUnidad(unidad?: UnidadPrestamo | null) {
   return unidad?.herramienta?.nombre ?? "Herramienta"
 }
 
-export function categoriaUnidad(unidad?: UnidadPrestamo | null) {
-  return unidad?.herramienta?.categoria?.nombre ?? "Sin categoría"
+function esEtiquetaVacia(valor?: string | null) {
+  const nombre = valor?.trim() ?? ""
+
+  if (!nombre) return true
+
+  return /^sin\s+(marca|color)$/i.test(nombre)
+}
+
+export function marcaUnidad(unidad?: UnidadPrestamo | null) {
+  const nombre = unidad?.marca?.nombre?.trim() ?? ""
+
+  return esEtiquetaVacia(nombre) ? null : nombre
+}
+
+export function coloresUnidad(unidad?: UnidadPrestamo | null) {
+  return coloresUnidadVisibles(unidad?.color_primario, unidad?.color_secundario)
 }
 
 export function detalleUnidad(unidad?: UnidadPrestamo | null) {
   return [
-    unidad?.marca?.nombre,
+    marcaUnidad(unidad),
     unidad?.ubicacion?.nombre,
     unidad?.tamano ? `Tamaño: ${unidad.tamano}` : null,
-    etiquetaColoresUnidad(unidad?.color_primario, unidad?.color_secundario),
+    coloresUnidad(unidad)
+      .map((color) => etiquetaColorUnidad(color))
+      .join(" + ") || null,
   ]
     .filter(Boolean)
     .join(" · ")
+}
+
+export function textoBusquedaUnidad(unidad?: UnidadPrestamo | null) {
+  return [nombreUnidad(unidad), detalleUnidad(unidad)]
+    .join(" ")
+    .toLocaleLowerCase()
+}
+
+export function compararPorBusquedaCorta(nombreA: string, nombreB: string, query: string) {
+  const q = query.trim().toLocaleLowerCase()
+  const a = nombreA.toLocaleLowerCase()
+  const b = nombreB.toLocaleLowerCase()
+
+  const rango = (nombre: string) => {
+    if (nombre === q) return 0
+    if (nombre.startsWith(q)) return 1
+    return 2
+  }
+
+  const rangoA = rango(a)
+  const rangoB = rango(b)
+
+  if (rangoA !== rangoB) return rangoA - rangoB
+  if (a.length !== b.length) return a.length - b.length
+
+  return a.localeCompare(b, "es")
+}
+
+export function filtrarUnidadesPorBusqueda<T extends UnidadPrestamo>(
+  unidades: T[],
+  search: string,
+) {
+  const query = search.trim().toLocaleLowerCase()
+
+  if (!query) return unidades
+
+  return unidades
+    .filter((unidad) => textoBusquedaUnidad(unidad).includes(query))
+    .sort((a, b) => compararPorBusquedaCorta(nombreUnidad(a), nombreUnidad(b), query))
 }
 
 export function mapDetalleEnUso(detalle: DetallePrestamoActivo): PrestamoEnUso {
@@ -133,13 +201,13 @@ export function mapDetalleEnUso(detalle: DetallePrestamoActivo): PrestamoEnUso {
     detalleId: detalle.id,
     unidadId: detalle.unidad?.id ?? detalle.herramienta_unidad_id,
     nombre: nombreUnidad(detalle.unidad),
-    categoria: categoriaUnidad(detalle.unidad),
     detalle: detalleUnidad(detalle.unidad),
     borrowedAt: detalle.prestamo?.fecha_prestamo ?? "",
     mechanicId: mecanico?.id ?? detalle.prestamo?.mecanico_id ?? "",
     mechanicName: mecanico?.nombre_completo
       ?? [mecanico?.nombre, mecanico?.apellido].filter(Boolean).join(" "),
     mechanicArea: mecanico?.cargo ?? "",
+    unidad: detalle.unidad,
   }
 }
 
@@ -195,6 +263,30 @@ export async function listarHerramientasEnUso() {
   )
 
   return respuesta.detalles.map(mapDetalleEnUso)
+}
+
+export async function listarHerramientasGeneral() {
+  const [disponibles, enUso] = await Promise.all([
+    listarUnidadesDisponibles(),
+    listarHerramientasEnUso(),
+  ])
+
+  const unidadesDisponibles: HerramientaGeneral[] = disponibles.map((unidad) => ({
+    unidadId: unidad.id,
+    nombre: nombreUnidad(unidad),
+    detalle: detalleUnidad(unidad),
+    estado: "disponible",
+    unidad,
+  }))
+
+  const unidadesEnUso: HerramientaGeneral[] = enUso.map((item) => ({
+    ...item,
+    estado: "en_uso",
+  }))
+
+  return [...unidadesDisponibles, ...unidadesEnUso].sort((a, b) =>
+    a.nombre.localeCompare(b.nombre, "es"),
+  )
 }
 
 export async function listarPrestamosDeMecanico(mecanicoId: string) {

@@ -281,7 +281,7 @@ export function ModalMecanico({
               <div className="flex flex-wrap gap-2">
                 <Button
                   type="button"
-                  variant="outline"
+                  variant="info"
                   disabled={isSubmitting}
                   onClick={() => fileInputRef.current?.click()}
                 >
@@ -291,7 +291,7 @@ export function ModalMecanico({
                 {previewUrl ? (
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="destructive"
                     disabled={isSubmitting}
                     onClick={handleRemoveImage}
                   >

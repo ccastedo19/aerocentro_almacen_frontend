@@ -134,7 +134,7 @@ export function ModalCatalogo({
           {!isEditing && initialParentId && selectedParent ? (
             <div className="rounded-lg border bg-muted/50 px-3 py-2 text-sm">
               <span className="text-muted-foreground">
-                {singularCapitalizado} padre:
+                {singularCapitalizado} principal:
               </span>{" "}
               <span className="font-semibold">{selectedParent.nombre}</span>
             </div>
@@ -163,20 +163,20 @@ export function ModalCatalogo({
 
           {jerarquico ? (
             <div className="space-y-2">
-              <label htmlFor="catalogo-padre" className="text-sm font-medium">
-                Padre
+              <label htmlFor="catalogo-principal" className="text-sm font-medium">
+                {singularCapitalizado} principal
                 <span className="ml-1 font-normal text-muted-foreground">
                   (opcional)
                 </span>
               </label>
               <NamedSelect
-                id="catalogo-padre"
+                id="catalogo-principal"
                 value={parentId}
                 options={[
-                  { id: "__root__", nombre: "Sin padre (raíz)" },
+                  { id: "__root__", nombre: `Sin ${singular} principal` },
                   ...parentOptions,
                 ]}
-                placeholder="Selecciona un padre"
+                placeholder={`Selecciona la ${singular} principal`}
                 disabled={isSubmitting}
                 error={parentError}
                 onChange={setParentId}

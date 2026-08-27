@@ -10,13 +10,12 @@ import {
 } from "lucide-react"
 import { createColumnHelper } from "@tanstack/react-table"
 
-import { ModalConfirmarEliminar } from "@/components/modal/ModalConfirmarEliminar"
 import {
-  ModalUsuario,
-  type UsuarioFieldErrors,
-} from "@/components/modal/ModalUsuario"
+  ModalCombinada,
+  type CombinadaFieldErrors,
+} from "@/components/modal/ModalCombinada"
+import { ModalConfirmarEliminar } from "@/components/modal/ModalConfirmarEliminar"
 import { AlertError } from "@/components/ui/alert-error"
-import { PagePreloader } from "@/components/ui/page-preloader"
 import { Button } from "@/components/ui/button"
 import { DataTable } from "@/components/ui/data-table"
 import { type DataTableFeatures } from "@/components/ui/data-table-features"
@@ -28,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
+import { PagePreloader } from "@/components/ui/page-preloader"
 import {
   Select,
   SelectContent,
@@ -35,50 +35,49 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { useAuth } from "@/hooks/use-auth"
 import { ICONO_ACCION } from "@/lib/acciones-color"
 import { ApiError } from "@/lib/api"
 import { toastExito } from "@/lib/toast"
-import { getNombreCompleto, type Rol, type Usuario } from "@/lib/auth"
 import {
-  actualizarUsuario,
-  cambiarEstadoUsuario,
-  crearUsuario,
-  eliminarUsuario,
-  etiquetaEstadoUsuario,
-  listarRoles,
-  listarUsuarios,
-  USUARIO_ESTADO_ACTIVO,
-  USUARIO_ESTADO_INACTIVO,
-  type UsuarioFormValues,
-} from "@/lib/usuarios"
+  actualizarCombinada,
+  cambiarEstadoCombinada,
+  COMBINADA_ESTADO_ACTIVA,
+  COMBINADA_ESTADO_INACTIVA,
+  crearCombinada,
+  eliminarCombinada,
+  etiquetaEstadoCombinada,
+  listarCombinadas,
+  resumenCombinada,
+  type Combinada,
+  type CombinadaFormValues,
+} from "@/lib/combinadas"
+import { listarUnidades, type HerramientaUnidad } from "@/lib/herramientas"
 
 type EstadoFiltro = "todos" | "activo" | "inactivo"
 
-export const Usuarios = () => {
-  const { usuario: sesionUsuario, refreshUsuario } = useAuth()
-  const [items, setItems] = useState<Usuario[]>([])
-  const [roles, setRoles] = useState<Rol[]>([])
+export const Combinadas = () => {
+  const [items, setItems] = useState<Combinada[]>([])
+  const [unidades, setUnidades] = useState<HerramientaUnidad[]>([])
   const [search, setSearch] = useState("")
   const [estadoFiltro, setEstadoFiltro] = useState<EstadoFiltro>("todos")
   const [isLoading, setIsLoading] = useState(true)
   const [pageError, setPageError] = useState("")
   const [isFormOpen, setIsFormOpen] = useState(false)
-  const [editingItem, setEditingItem] = useState<Usuario | null>(null)
-  const [deletingItem, setDeletingItem] = useState<Usuario | null>(null)
+  const [editingItem, setEditingItem] = useState<Combinada | null>(null)
+  const [deletingItem, setDeletingItem] = useState<Combinada | null>(null)
   const [isSaving, setIsSaving] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [formError, setFormError] = useState("")
-  const [fieldErrors, setFieldErrors] = useState<UsuarioFieldErrors>({})
+  const [fieldErrors, setFieldErrors] = useState<CombinadaFieldErrors>({})
   const [deleteError, setDeleteError] = useState("")
 
   const loadItems = useCallback(async () => {
-    const [usuarios, rolesData] = await Promise.all([
-      listarUsuarios(),
-      listarRoles(),
+    const [combinadas, unidadesData] = await Promise.all([
+      listarCombinadas(),
+      listarUnidades(),
     ])
-    setItems(usuarios)
-    setRoles(rolesData)
+    setItems(combinadas)
+    setUnidades(unidadesData)
   }, [])
 
   useEffect(() => {
@@ -92,9 +91,7 @@ export const Usuarios = () => {
         if (cancelled) return
         setPageError(
           error instanceof ApiError
-            ? error.status === 403
-              ? "No tienes permiso para administrar usuarios."
-              : error.message
+            ? error.message
             : "No se pudo cargar la lista.",
         )
       })
@@ -109,34 +106,32 @@ export const Usuarios = () => {
 
   const visibleItems = useMemo(() => {
     if (estadoFiltro === "activo") {
-      return items.filter((item) => item.estado === USUARIO_ESTADO_ACTIVO)
+      return items.filter((item) => item.estado === COMBINADA_ESTADO_ACTIVA)
     }
 
     if (estadoFiltro === "inactivo") {
-      return items.filter((item) => item.estado === USUARIO_ESTADO_INACTIVO)
+      return items.filter((item) => item.estado === COMBINADA_ESTADO_INACTIVA)
     }
 
     return items
   }, [estadoFiltro, items])
 
   const handleCambiarEstado = useCallback(
-    async (usuario: Usuario, estado: number) => {
+    async (combinada: Combinada, estado: number) => {
       setPageError("")
 
       try {
-        await cambiarEstadoUsuario(usuario.id, estado)
+        await cambiarEstadoCombinada(combinada.id, estado)
         await loadItems()
         toastExito(
-          estado === USUARIO_ESTADO_ACTIVO
-            ? "Usuario reactivado correctamente."
-            : "Usuario desactivado correctamente.",
+          estado === COMBINADA_ESTADO_ACTIVA
+            ? "Combinada reactivada correctamente."
+            : "Combinada desactivada correctamente.",
         )
       } catch (error) {
         setPageError(
           error instanceof ApiError
-            ? error.errors.estado?.[0] ||
-                error.errors.usuario?.[0] ||
-                error.message
+            ? error.errors.combinada?.[0] || error.message
             : "No se pudo actualizar el estado.",
         )
       }
@@ -145,29 +140,49 @@ export const Usuarios = () => {
   )
 
   const columns = useMemo(() => {
-    const columnHelper = createColumnHelper<DataTableFeatures, Usuario>()
+    const columnHelper = createColumnHelper<DataTableFeatures, Combinada>()
 
     return columnHelper.columns([
-      columnHelper.accessor((row) => getNombreCompleto(row), {
-        id: "nombre_completo",
-        header: "Nombre",
+      columnHelper.accessor("nombre", {
+        header: "Combinada",
         sortFn: "text",
-        cell: ({ getValue }) => (
-          <span className="font-medium">{getValue()}</span>
+        cell: ({ row }) => (
+          <div className="min-w-0">
+            <span className="font-medium">{row.original.nombre}</span>
+            {row.original.descripcion ? (
+              <p className="truncate text-xs text-muted-foreground">
+                {row.original.descripcion}
+              </p>
+            ) : null}
+          </div>
         ),
       }),
-      columnHelper.accessor("nombre_usuario", {
-        header: "Usuario",
+      columnHelper.accessor((row) => resumenCombinada(row), {
+        id: "composicion",
+        header: "Composición",
         sortFn: "text",
+        cell: ({ row }) => (
+          <div className="flex flex-wrap gap-1.5">
+            {(row.original.unidades ?? []).map((unidad) => (
+              <span
+                key={unidad.id}
+                className="inline-flex rounded-full bg-amber-400/15 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300"
+              >
+                {unidad.herramienta?.nombre ?? "Herramienta"}
+              </span>
+            ))}
+          </div>
+        ),
       }),
-      columnHelper.accessor("email", {
-        header: "Correo",
-        sortFn: "text",
-      }),
-      columnHelper.accessor((row) => row.rol?.nombre ?? "—", {
-        id: "rol",
-        header: "Rol",
-        sortFn: "text",
+      columnHelper.accessor((row) => row.unidades_total ?? 0, {
+        id: "unidades",
+        header: "Unidades",
+        enableGlobalFilter: false,
+        cell: ({ getValue }) => (
+          <span className="tabular-nums text-muted-foreground">
+            {getValue()}
+          </span>
+        ),
       }),
       columnHelper.accessor("estado", {
         header: "Estado",
@@ -180,9 +195,8 @@ export const Usuarios = () => {
         enableSorting: false,
         enableGlobalFilter: false,
         cell: ({ row }) => {
-          const usuario = row.original
-          const esSesionActual = sesionUsuario?.id === usuario.id
-          const estaActivo = usuario.estado === USUARIO_ESTADO_ACTIVO
+          const combinada = row.original
+          const estaActiva = combinada.estado === COMBINADA_ESTADO_ACTIVA
 
           return (
             <DropdownMenu>
@@ -191,7 +205,7 @@ export const Usuarios = () => {
                   <Button
                     variant="ghost"
                     size="icon-sm"
-                    aria-label={`Acciones de ${getNombreCompleto(usuario)}`}
+                    aria-label={`Acciones de ${combinada.nombre}`}
                   />
                 }
               >
@@ -200,7 +214,7 @@ export const Usuarios = () => {
               <DropdownMenuContent align="end">
                 <DropdownMenuItem
                   onClick={() => {
-                    setEditingItem(usuario)
+                    setEditingItem(combinada)
                     setFormError("")
                     setFieldErrors({})
                     setIsFormOpen(true)
@@ -210,29 +224,27 @@ export const Usuarios = () => {
                   Editar
                 </DropdownMenuItem>
                 <DropdownMenuItem
-                  disabled={esSesionActual}
                   onClick={() => {
                     void handleCambiarEstado(
-                      usuario,
-                      estaActivo
-                        ? USUARIO_ESTADO_INACTIVO
-                        : USUARIO_ESTADO_ACTIVO,
+                      combinada,
+                      estaActiva
+                        ? COMBINADA_ESTADO_INACTIVA
+                        : COMBINADA_ESTADO_ACTIVA,
                     )
                   }}
                 >
-                  {estaActivo ? (
+                  {estaActiva ? (
                     <CirclePause className={ICONO_ACCION.desactivar} />
                   ) : (
                     <CirclePlay className={ICONO_ACCION.activar} />
                   )}
-                  {estaActivo ? "Desactivar" : "Reactivar"}
+                  {estaActiva ? "Desactivar" : "Reactivar"}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   variant="destructive"
-                  disabled={esSesionActual}
                   onClick={() => {
-                    setDeletingItem(usuario)
+                    setDeletingItem(combinada)
                     setDeleteError("")
                   }}
                 >
@@ -245,47 +257,38 @@ export const Usuarios = () => {
         },
       }),
     ])
-  }, [handleCambiarEstado, sesionUsuario?.id])
+  }, [handleCambiarEstado])
 
   const hasSearch = search.trim().length > 0
 
-  const handleSubmit = async (values: UsuarioFormValues) => {
+  const handleSubmit = async (values: CombinadaFormValues) => {
     setIsSaving(true)
     setFormError("")
     setFieldErrors({})
 
     try {
       if (editingItem) {
-        await actualizarUsuario(editingItem.id, values)
-
-        if (sesionUsuario?.id === editingItem.id) {
-          await refreshUsuario()
-        }
-        toastExito("Usuario actualizado correctamente.")
+        await actualizarCombinada(editingItem.id, values)
+        toastExito("Combinada actualizada correctamente.")
       } else {
-        await crearUsuario(values)
-        toastExito("Usuario creado correctamente.")
+        await crearCombinada(values)
+        toastExito("Combinada creada correctamente.")
       }
 
       await loadItems()
       setIsFormOpen(false)
-      setEditingItem(null)
     } catch (error) {
       if (error instanceof ApiError) {
         setFieldErrors({
           nombre: error.errors.nombre?.[0],
-          apellido: error.errors.apellido?.[0],
-          nombre_usuario: error.errors.nombre_usuario?.[0],
-          email: error.errors.email?.[0],
-          rol_id: error.errors.rol_id?.[0],
-          password: error.errors.password?.[0],
-          password_confirmation: error.errors.password_confirmation?.[0],
+          descripcion: error.errors.descripcion?.[0],
+          unidades_ids: error.errors.unidades_ids?.[0],
         })
         setFormError(error.message)
         return
       }
 
-      setFormError("No se pudo guardar el usuario.")
+      setFormError("No se pudo guardar la combinada.")
     } finally {
       setIsSaving(false)
     }
@@ -298,15 +301,15 @@ export const Usuarios = () => {
     setDeleteError("")
 
     try {
-      await eliminarUsuario(deletingItem.id)
+      await eliminarCombinada(deletingItem.id)
       await loadItems()
       setDeletingItem(null)
-      toastExito("Usuario eliminado correctamente.")
+      toastExito("Combinada eliminada correctamente.")
     } catch (error) {
       setDeleteError(
         error instanceof ApiError
-          ? error.errors.usuario?.[0] || error.message
-          : "No se pudo eliminar el usuario.",
+          ? error.errors.combinada?.[0] || error.message
+          : "No se pudo eliminar la combinada.",
       )
     } finally {
       setIsDeleting(false)
@@ -314,15 +317,16 @@ export const Usuarios = () => {
   }
 
   if (isLoading) {
-    return <PagePreloader recurso="todos los usuarios" />
+    return <PagePreloader recurso="todas las combinadas" />
   }
 
   return (
     <div className="w-full space-y-8">
       <section className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Usuarios</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Combinadas</h1>
         <p className="text-sm text-muted-foreground">
-          Administra quién puede entrar al almacén y con qué rol.
+          Agrupa varias unidades en un solo conjunto para prestarlas juntas, como
+          una llave de bujía formada por chicharra, extensión y dado.
         </p>
       </section>
 
@@ -334,14 +338,14 @@ export const Usuarios = () => {
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center">
             <div className="relative w-full max-w-md">
-              <label htmlFor="usuario-search" className="sr-only">
-                Buscar usuario
+              <label htmlFor="combinada-search-page" className="sr-only">
+                Buscar combinada
               </label>
               <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
-                id="usuario-search"
+                id="combinada-search-page"
                 className="h-9 pl-9"
-                placeholder="Buscar por nombre, usuario, correo o rol..."
+                placeholder="Buscar por nombre o herramienta..."
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
               />
@@ -349,13 +353,18 @@ export const Usuarios = () => {
 
             <Select
               value={estadoFiltro}
+              items={{
+                todos: "Todos los estados",
+                activo: "Activas",
+                inactivo: "Inactivas",
+              }}
               onValueChange={(value) => {
                 if (value == null) return
                 setEstadoFiltro(value as EstadoFiltro)
               }}
             >
               <SelectTrigger
-                id="usuario-estado"
+                id="combinada-estado"
                 className="h-10 min-w-[12rem]"
                 aria-label="Filtrar por estado"
               >
@@ -363,8 +372,8 @@ export const Usuarios = () => {
               </SelectTrigger>
               <SelectContent alignItemWithTrigger={false}>
                 <SelectItem value="todos">Todos los estados</SelectItem>
-                <SelectItem value="activo">Activos</SelectItem>
-                <SelectItem value="inactivo">Inactivos</SelectItem>
+                <SelectItem value="activo">Activas</SelectItem>
+                <SelectItem value="inactivo">Inactivas</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -380,7 +389,7 @@ export const Usuarios = () => {
             }}
           >
             <Plus data-icon="inline-start" />
-            Agregar usuario
+            Agregar combinada
           </Button>
         </div>
 
@@ -391,41 +400,40 @@ export const Usuarios = () => {
           pageSizeOptions={[5, 10, 20]}
           emptyMessage={
             hasSearch
-              ? "No se encontraron usuarios"
+              ? "No se encontraron combinadas"
               : estadoFiltro !== "todos"
-                ? "No hay usuarios en este estado"
-                : "No hay usuarios registrados"
+                ? "No hay combinadas en este estado"
+                : "No hay combinadas registradas"
           }
           emptyDescription={
             hasSearch
-              ? "Intenta con otro nombre, usuario o correo."
-              : "Agrega el primer usuario para comenzar."
+              ? "Intenta con otro nombre o herramienta."
+              : "Crea la primera combinada para prestar varias unidades juntas."
           }
         />
       </section>
 
-      <ModalUsuario
+      <ModalCombinada
         open={isFormOpen}
         item={editingItem}
-        roles={roles}
+        unidades={unidades}
         isSubmitting={isSaving}
         formError={formError}
         fieldErrors={fieldErrors}
         onOpenChange={(open) => {
           if (!open && isSaving) return
           setIsFormOpen(open)
-          if (!open) setEditingItem(null)
         }}
         onSubmit={handleSubmit}
       />
 
       <ModalConfirmarEliminar
         open={deletingItem !== null}
-        singular="usuario"
-        nombre={deletingItem ? getNombreCompleto(deletingItem) : undefined}
+        singular="combinada"
+        nombre={deletingItem?.nombre}
         descripcion={
           deletingItem
-            ? `Se dará de baja a “${getNombreCompleto(deletingItem)}” y se cerrarán sus sesiones.`
+            ? `Se ocultará “${deletingItem.nombre}”. Las unidades seguirán disponibles por separado.`
             : undefined
         }
         isSubmitting={isDeleting}
@@ -441,17 +449,17 @@ export const Usuarios = () => {
 }
 
 function EstadoBadge({ estado }: { estado: number }) {
-  const activo = estado === USUARIO_ESTADO_ACTIVO
+  const activa = estado === COMBINADA_ESTADO_ACTIVA
 
   return (
     <span
       className={
-        activo
+        activa
           ? "inline-flex rounded-full bg-emerald-500/15 px-2.5 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-300"
           : "inline-flex rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300"
       }
     >
-      {etiquetaEstadoUsuario(estado)}
+      {etiquetaEstadoCombinada(estado)}
     </span>
   )
 }

@@ -37,7 +37,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { ICONO_ACCION } from "@/lib/acciones-color"
 import { ApiError } from "@/lib/api"
+import { toastExito } from "@/lib/toast"
 import { listarCatalogo, type CatalogoItem } from "@/lib/catalogo"
 import { opcionesCatalogoConRuta } from "@/lib/catalogo-tree"
 import {
@@ -153,6 +155,11 @@ export const Herramientas = () => {
       try {
         await cambiarEstadoHerramienta(herramienta.id, estado)
         await loadItems()
+        toastExito(
+          estado === HERRAMIENTA_ESTADO_ACTIVO
+            ? "Herramienta reactivada correctamente."
+            : "Herramienta desactivada correctamente.",
+        )
       } catch (error) {
         setPageError(
           error instanceof ApiError
@@ -203,7 +210,7 @@ export const Herramientas = () => {
               </span>
               <Button
                 type="button"
-                variant="outline"
+                variant="info"
                 size="sm"
                 className="h-8"
                 onClick={() => setViewingItem(herramienta)}
@@ -244,7 +251,7 @@ export const Herramientas = () => {
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => setViewingItem(herramienta)}>
-                  <Eye />
+                  <Eye className={ICONO_ACCION.ver} />
                   Ver unidades
                 </DropdownMenuItem>
                 <DropdownMenuItem
@@ -255,7 +262,7 @@ export const Herramientas = () => {
                     setIsFormOpen(true)
                   }}
                 >
-                  <Pencil />
+                  <Pencil className={ICONO_ACCION.editar} />
                   Editar
                 </DropdownMenuItem>
                 <DropdownMenuItem
@@ -268,7 +275,11 @@ export const Herramientas = () => {
                     )
                   }}
                 >
-                  {estaActiva ? <CirclePause /> : <CirclePlay />}
+                  {estaActiva ? (
+                    <CirclePause className={ICONO_ACCION.desactivar} />
+                  ) : (
+                    <CirclePlay className={ICONO_ACCION.activar} />
+                  )}
                   {estaActiva ? "Desactivar" : "Reactivar"}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -300,8 +311,10 @@ export const Herramientas = () => {
     try {
       if (editingItem) {
         await actualizarHerramienta(editingItem.id, values)
+        toastExito("Herramienta actualizada correctamente.")
       } else {
         await crearHerramienta(values)
+        toastExito("Herramienta creada correctamente.")
       }
 
       await loadItems()
@@ -334,6 +347,7 @@ export const Herramientas = () => {
       await eliminarHerramienta(deletingItem.id)
       await loadItems()
       setDeletingItem(null)
+      toastExito("Herramienta eliminada correctamente.")
     } catch (error) {
       setDeleteError(
         error instanceof ApiError

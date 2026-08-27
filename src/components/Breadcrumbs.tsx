@@ -29,6 +29,11 @@ const routes: Record<
     parent: "Inventario",
   },
 
+  "/combinadas": {
+    title: "Combinadas",
+    parent: "Inventario",
+  },
+
   "/categorias": {
     title: "Categorías",
     parent: "Inventario",

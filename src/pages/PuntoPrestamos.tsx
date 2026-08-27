@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Eye, Plus, Search, Wrench } from "lucide-react"
+import { Eye, PackageSearch, Plus, Search, Wrench } from "lucide-react"
 
 import { ModalAgregarPrestamo } from "@/components/modal/ModalAgregarPrestamo"
+import { ModalBuscarHerramientaGeneral } from "@/components/modal/ModalBuscarHerramientaGeneral"
 import { ModalBuscarHerramientaEnUso } from "@/components/modal/ModalBuscarHerramientaEnUso"
 import { ModalVerPrestamos } from "@/components/modal/ModalVerPrestamos"
 import { AlertError } from "@/components/ui/alert-error"
@@ -18,17 +19,20 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { ApiError } from "@/lib/api"
+import { listarCombinadasActivas, type Combinada } from "@/lib/combinadas"
 import { getInicialesMecanico } from "@/lib/mecanicos"
 import {
   crearPrestamo,
   devolverTodasDeMecanico,
   devolverUnidad,
   estiloTarjetaMecanico,
+  listarHerramientasGeneral,
   listarHerramientasEnUso,
   listarPrestamosDeMecanico,
   listarPuntoPrestamos,
   listarUnidadesDisponibles,
   type DetallePrestamoActivo,
+  type HerramientaGeneral,
   type MecanicoPunto,
   type PrestamoEnUso,
   type UnidadPrestamo,
@@ -47,6 +51,11 @@ export const PuntoPrestamos = () => {
   const [isLoadingUsed, setIsLoadingUsed] = useState(false)
   const [usedError, setUsedError] = useState("")
 
+  const [isGeneralToolsOpen, setIsGeneralToolsOpen] = useState(false)
+  const [generalTools, setGeneralTools] = useState<HerramientaGeneral[]>([])
+  const [isLoadingGeneral, setIsLoadingGeneral] = useState(false)
+  const [generalError, setGeneralError] = useState("")
+
   const [viewMechanicId, setViewMechanicId] = useState<string | null>(null)
   const [viewLoans, setViewLoans] = useState<DetallePrestamoActivo[]>([])
   const [isLoadingView, setIsLoadingView] = useState(false)
@@ -56,6 +65,7 @@ export const PuntoPrestamos = () => {
 
   const [addMechanicId, setAddMechanicId] = useState<string | null>(null)
   const [availableUnits, setAvailableUnits] = useState<UnidadPrestamo[]>([])
+  const [combinadas, setCombinadas] = useState<Combinada[]>([])
   const [isLoadingUnits, setIsLoadingUnits] = useState(false)
   const [isSavingLoan, setIsSavingLoan] = useState(false)
   const [addError, setAddError] = useState("")
@@ -132,7 +142,12 @@ export const PuntoPrestamos = () => {
     setIsLoadingUnits(true)
 
     try {
-      setAvailableUnits(await listarUnidadesDisponibles())
+      const [unidades, combinadasActivas] = await Promise.all([
+        listarUnidadesDisponibles(),
+        listarCombinadasActivas(),
+      ])
+      setAvailableUnits(unidades)
+      setCombinadas(combinadasActivas)
     } catch (error) {
       setAddError(
         error instanceof ApiError
@@ -140,6 +155,7 @@ export const PuntoPrestamos = () => {
           : "No se pudieron cargar las unidades disponibles.",
       )
       setAvailableUnits([])
+      setCombinadas([])
     } finally {
       setIsLoadingUnits(false)
     }
@@ -164,6 +180,25 @@ export const PuntoPrestamos = () => {
     }
   }
 
+  const openGeneralTools = async () => {
+    setIsGeneralToolsOpen(true)
+    setIsLoadingGeneral(true)
+    setGeneralError("")
+
+    try {
+      setGeneralTools(await listarHerramientasGeneral())
+    } catch (error) {
+      setGeneralError(
+        error instanceof ApiError
+          ? error.message
+          : "No se pudieron cargar las herramientas.",
+      )
+      setGeneralTools([])
+    } finally {
+      setIsLoadingGeneral(false)
+    }
+  }
+
   const refreshAfterChange = async () => {
     await loadMecanicos()
 
@@ -173,6 +208,10 @@ export const PuntoPrestamos = () => {
 
     if (isUsedToolsOpen) {
       setUsedTools(await listarHerramientasEnUso())
+    }
+
+    if (isGeneralToolsOpen) {
+      setGeneralTools(await listarHerramientasGeneral())
     }
   }
 
@@ -202,12 +241,14 @@ export const PuntoPrestamos = () => {
 
   const handleReturnTool = async (
     detalleId: string,
-    origen: "view" | "used" = "view",
+    origen: "view" | "used" | "general" = "view",
   ) => {
     setReturningId(detalleId)
 
     if (origen === "used") {
       setUsedError("")
+    } else if (origen === "general") {
+      setGeneralError("")
     } else {
       setViewError("")
     }
@@ -223,6 +264,8 @@ export const PuntoPrestamos = () => {
 
       if (origen === "used") {
         setUsedError(message)
+      } else if (origen === "general") {
+        setGeneralError(message)
       } else {
         setViewError(message)
       }
@@ -286,15 +329,27 @@ export const PuntoPrestamos = () => {
             />
           </div>
 
-          <Button
-            variant="outline"
-            size="lg"
-            className="sm:shrink-0"
-            onClick={() => void openUsedTools()}
-          >
-            <Wrench data-icon="inline-start" />
-            Buscar herramienta en uso
-          </Button>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button
+              variant="info"
+              size="lg"
+              className="sm:shrink-0"
+              onClick={() => void openUsedTools()}
+            >
+              <Wrench data-icon="inline-start" />
+              Buscar herramienta en uso
+            </Button>
+            <Button
+              size="lg"
+              className="sm:shrink-0 outline"
+              onClick={() => void openGeneralTools()}
+            >
+              <PackageSearch data-icon="inline-start" />
+              Buscar herramienta en general
+
+              
+            </Button>
+          </div>
         </div>
 
         {filteredMechanics.length > 0 ? (
@@ -348,8 +403,8 @@ export const PuntoPrestamos = () => {
 
                   <CardFooter className="mt-auto grid grid-cols-2 gap-2">
                     <Button
-                      className="h8"
-                      variant="outline"
+                      className="h-8"
+                      variant="success"
                       disabled={!puedePrestar}
                       onClick={() => void openAddLoan(mechanic.id)}
                     >
@@ -358,7 +413,7 @@ export const PuntoPrestamos = () => {
                     </Button>
                     <Button
                       className="h-8"
-                      variant="outline"
+                      variant="info"
                       onClick={() => openViewLoans(mechanic.id)}
                     >
                       <Eye data-icon="inline-start" />
@@ -396,6 +451,19 @@ export const PuntoPrestamos = () => {
         }}
       />
 
+      <ModalBuscarHerramientaGeneral
+        open={isGeneralToolsOpen}
+        tools={generalTools}
+        isLoading={isLoadingGeneral}
+        returningId={returningId}
+        error={generalError}
+        onOpenChange={setIsGeneralToolsOpen}
+        onDismissError={() => setGeneralError("")}
+        onReturnTool={(detalleId) => {
+          void handleReturnTool(detalleId, "general")
+        }}
+      />
+
       <ModalVerPrestamos
         open={viewMechanicId !== null}
         mechanic={viewMechanic}
@@ -424,6 +492,7 @@ export const PuntoPrestamos = () => {
         open={addMechanicId !== null}
         mechanic={addMechanic}
         availableUnits={availableUnits}
+        combinadas={combinadas}
         isLoading={isLoadingUnits}
         isSubmitting={isSavingLoan}
         error={addError}
@@ -432,6 +501,7 @@ export const PuntoPrestamos = () => {
           if (!open) {
             setAddMechanicId(null)
             setAvailableUnits([])
+            setCombinadas([])
             setAddError("")
           }
         }}

@@ -41,8 +41,8 @@ export function ModalConfirmarRestaurarBackup({
           <DialogTitle>Usar este backup</DialogTitle>
           <DialogDescription>
             {backup
-              ? `Se reemplazarán los datos actuales del almacén por la copia del ${formatFechaBackup(backup.fecha)} (${backup.nombre_archivo}). Esta acción no se puede deshacer.`
-              : "Se reemplazarán los datos actuales del almacén por esta copia. Esta acción no se puede deshacer."}
+              ? `Se reemplazarán los datos actuales del almacén por la copia del ${formatFechaBackup(backup.fecha)} (${backup.nombre_archivo}). Al terminar se cerrará tu sesión y tendrás que volver a iniciar. Esta acción no se puede deshacer.`
+              : "Se reemplazarán los datos actuales del almacén. Al terminar se cerrará tu sesión y tendrás que volver a iniciar. Esta acción no se puede deshacer."}
           </DialogDescription>
         </DialogHeader>
 

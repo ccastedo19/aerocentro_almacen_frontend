@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
+import { Save } from "lucide-react"
 
 import { type NamedOption } from "@/components/form/named-select"
 import { type CatalogoItem } from "@/lib/catalogo"
@@ -23,6 +24,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { ApiError } from "@/lib/api"
+import { toastExito } from "@/lib/toast"
 import {
   actualizarUnidad,
   crearUnidad,
@@ -49,6 +51,11 @@ type ModalVerUnidadesProps = {
   onCreatedUbicacion: (item: CatalogoItem) => void
 }
 
+type UnidadPendiente = {
+  id: string
+  values: UnidadCamposValues
+}
+
 export function ModalVerUnidades({
   open,
   herramienta,
@@ -69,6 +76,8 @@ export function ModalVerUnidades({
   const [editingUnidad, setEditingUnidad] = useState<HerramientaUnidad | null>(
     null,
   )
+  const [editingPendingId, setEditingPendingId] = useState<string | null>(null)
+  const [pendingUnits, setPendingUnits] = useState<UnidadPendiente[]>([])
   const [isSaving, setIsSaving] = useState(false)
   const [deletingUnidad, setDeletingUnidad] = useState<HerramientaUnidad | null>(
     null,
@@ -100,6 +109,8 @@ export function ModalVerUnidades({
     if (!open || !herramienta) return
 
     setEditingUnidad(null)
+    setEditingPendingId(null)
+    setPendingUnits([])
     setUnidadCampos(unidadCamposVacia(marcas, ubicaciones))
     setUnidadErrors({})
     setDeleteError("")
@@ -110,6 +121,7 @@ export function ModalVerUnidades({
     setUnidadCampos(unidadCamposVacia(marcas, ubicaciones))
     setUnidadErrors({})
     setEditingUnidad(null)
+    setEditingPendingId(null)
   }
 
   const handleGuardarUnidad = async () => {
@@ -122,17 +134,38 @@ export function ModalVerUnidades({
       return
     }
 
-    setIsSaving(true)
     setPageError("")
+
+    if (editingPendingId) {
+      setPendingUnits((current) =>
+        current.map((unidad) =>
+          unidad.id === editingPendingId
+            ? { ...unidad, values: { ...unidadCampos } }
+            : unidad,
+        ),
+      )
+      resetCampos()
+      return
+    }
+
+    if (!editingUnidad) {
+      setPendingUnits((current) => [
+        ...current,
+        {
+          id: `pending-${crypto.randomUUID()}`,
+          values: { ...unidadCampos },
+        },
+      ])
+      resetCampos()
+      return
+    }
+
+    setIsSaving(true)
 
     try {
       if (editingUnidad) {
         await actualizarUnidad(editingUnidad.id, unidadCampos)
-      } else {
-        await crearUnidad({
-          herramienta_id: herramienta.id,
-          ...unidadCampos,
-        })
+        toastExito("Unidad actualizada correctamente.")
       }
 
       setUnidadErrors({})
@@ -144,6 +177,45 @@ export function ModalVerUnidades({
         error instanceof ApiError
           ? error.errors.unidad?.[0] || error.message
           : "No se pudo guardar la unidad.",
+      )
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const handleGuardarCambios = async () => {
+    if (!herramienta || pendingUnits.length === 0) return
+
+    setIsSaving(true)
+    setPageError("")
+    let savedCount = 0
+
+    try {
+      for (const unidad of pendingUnits) {
+        await crearUnidad({
+          herramienta_id: herramienta.id,
+          ...unidad.values,
+        })
+        savedCount += 1
+        setPendingUnits((current) =>
+          current.filter((item) => item.id !== unidad.id),
+        )
+      }
+
+      resetCampos()
+      await loadUnidades()
+      onChanged()
+      toastExito("Unidades guardadas correctamente.")
+    } catch (error) {
+      if (savedCount > 0) {
+        await loadUnidades()
+        onChanged()
+      }
+
+      setPageError(
+        error instanceof ApiError
+          ? error.errors.unidad?.[0] || error.message
+          : "No se pudieron guardar todos los cambios. Revisa las unidades pendientes.",
       )
     } finally {
       setIsSaving(false)
@@ -162,6 +234,7 @@ export function ModalVerUnidades({
       setDeletingUnidad(null)
       await loadUnidades()
       onChanged()
+      toastExito("Unidad eliminada correctamente.")
     } catch (error) {
       setDeleteError(
         error instanceof ApiError
@@ -191,7 +264,9 @@ export function ModalVerUnidades({
 
             <div className="space-y-3 rounded-xl border p-4">
               <p className="text-sm font-medium">
-                {editingUnidad ? "Editar unidad" : "Agregar unidad"}
+                {editingUnidad || editingPendingId
+                  ? "Editar unidad"
+                  : "Agregar unidad"}
               </p>
               <UnidadCampos
                 idPrefix="ver-unidad"
@@ -210,13 +285,13 @@ export function ModalVerUnidades({
               <div className="flex flex-wrap gap-2">
                 <BotonAgregarUnidad
                   disabled={isSaving}
-                  isEditing={Boolean(editingUnidad)}
+                  isEditing={Boolean(editingUnidad || editingPendingId)}
                   onClick={() => void handleGuardarUnidad()}
                 />
-                {editingUnidad ? (
+                {editingUnidad || editingPendingId ? (
                   <Button
                     type="button"
-                    variant="ghost"
+                    variant="outline"
                     disabled={isSaving}
                     onClick={resetCampos}
                   >
@@ -232,31 +307,67 @@ export function ModalVerUnidades({
               </p>
             ) : (
               <UnidadesMiniTabla
-                filas={unidades.map((unidad) => ({
-                  id: unidad.id,
-                  marca: unidad.marca?.nombre ?? "—",
-                  ubicacion:
-                    ubicaciones.find((item) => item.id === unidad.ubicacion_id)
-                      ?.ruta
-                    ?? unidad.ubicacion?.nombre
-                    ?? "—",
-                  colores: etiquetaColoresUnidad(
-                    unidad.color_primario,
-                    unidad.color_secundario,
-                  ),
-                  tamano: unidad.tamano ?? "",
-                  calibracion:
-                    toDateInput(unidad.proxima_calibracion) ||
-                    toDateInput(unidad.fecha_calibracion),
-                  estado: etiquetaEstadoUnidad(unidad.estado),
-                  disableActions: unidad.estado === UNIDAD_ESTADO_PRESTADA,
-                }))}
+                filas={[
+                  ...pendingUnits.map((unidad) => ({
+                    id: unidad.id,
+                    marca:
+                      marcas.find((item) => item.id === unidad.values.marca_id)
+                        ?.nombre ?? "—",
+                    ubicacion:
+                      ubicaciones.find(
+                        (item) => item.id === unidad.values.ubicacion_id,
+                      )?.ruta ?? "—",
+                    colores: etiquetaColoresUnidad(
+                      unidad.values.color_primario === SIN_COLOR
+                        ? null
+                        : unidad.values.color_primario,
+                      unidad.values.color_secundario === SIN_COLOR
+                        ? null
+                        : unidad.values.color_secundario,
+                    ),
+                    tamano: unidad.values.tamano,
+                    calibracion:
+                      unidad.values.proxima_calibracion ||
+                      unidad.values.fecha_calibracion,
+                    estado: "Pendiente de guardar",
+                    pending: true,
+                  })),
+                  ...unidades.map((unidad) => ({
+                    id: unidad.id,
+                    marca: unidad.marca?.nombre ?? "—",
+                    ubicacion:
+                      ubicaciones.find((item) => item.id === unidad.ubicacion_id)
+                        ?.ruta
+                      ?? unidad.ubicacion?.nombre
+                      ?? "—",
+                    colores: etiquetaColoresUnidad(
+                      unidad.color_primario,
+                      unidad.color_secundario,
+                    ),
+                    tamano: unidad.tamano ?? "",
+                    calibracion:
+                      toDateInput(unidad.proxima_calibracion) ||
+                      toDateInput(unidad.fecha_calibracion),
+                    estado: etiquetaEstadoUnidad(unidad.estado),
+                    disableActions: unidad.estado === UNIDAD_ESTADO_PRESTADA,
+                  })),
+                ]}
                 emptyMessage="Esta herramienta aún no tiene unidades."
                 onEdit={(id) => {
+                  const pending = pendingUnits.find((item) => item.id === id)
+                  if (pending) {
+                    setEditingUnidad(null)
+                    setEditingPendingId(pending.id)
+                    setUnidadCampos({ ...pending.values })
+                    setUnidadErrors({})
+                    return
+                  }
+
                   const unidad = unidades.find((item) => item.id === id)
                   if (!unidad || unidad.estado === UNIDAD_ESTADO_PRESTADA) return
 
                   setEditingUnidad(unidad)
+                  setEditingPendingId(null)
                   setUnidadCampos({
                     marca_id: unidad.marca_id,
                     ubicacion_id: unidad.ubicacion_id,
@@ -273,6 +384,15 @@ export function ModalVerUnidades({
                   setUnidadErrors({})
                 }}
                 onDelete={(id) => {
+                  const pending = pendingUnits.find((item) => item.id === id)
+                  if (pending) {
+                    setPendingUnits((current) =>
+                      current.filter((item) => item.id !== id),
+                    )
+                    if (editingPendingId === id) resetCampos()
+                    return
+                  }
+
                   const unidad = unidades.find((item) => item.id === id)
                   if (!unidad || unidad.estado === UNIDAD_ESTADO_PRESTADA) return
                   setDeletingUnidad(unidad)
@@ -283,8 +403,24 @@ export function ModalVerUnidades({
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isSaving}
+              onClick={() => onOpenChange(false)}
+            >
               Cerrar
+            </Button>
+            <Button
+              type="button"
+              variant="info"
+              disabled={isSaving || pendingUnits.length === 0}
+              onClick={() => void handleGuardarCambios()}
+            >
+              <Save data-icon="inline-start" />
+              {isSaving
+                ? "Guardando..."
+                : `Guardar cambios${pendingUnits.length > 0 ? ` (${pendingUnits.length})` : ""}`}
             </Button>
           </DialogFooter>
         </DialogContent>

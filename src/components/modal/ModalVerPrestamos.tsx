@@ -11,9 +11,8 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { useClosingSnapshot } from "@/hooks/use-closing-snapshot"
+import { DetalleUnidadPrestamo } from "@/components/prestamos/detalle-unidad-prestamo"
 import {
-  categoriaUnidad,
-  detalleUnidad,
   formatBorrowedAt,
   nombreUnidad,
   type DetallePrestamoActivo,
@@ -60,7 +59,7 @@ export function ModalVerPrestamos({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[90vh] overflow-hidden sm:max-w-2xl">
+      <DialogContent className="flex h-[min(86vh,48rem)] w-[min(92vw,68rem)] max-w-none flex-col gap-4 overflow-hidden p-5 sm:max-w-none">
         <DialogHeader>
           <DialogTitle className="pr-8 text-lg">
             Listado de herramientas prestadas de “{displayedMechanic?.nombre_completo}”
@@ -84,7 +83,7 @@ export function ModalVerPrestamos({
           </span>
           <div className="flex flex-col gap-2 sm:flex-row">
             <Button
-              variant="outline"
+              variant="success"
               size="sm"
               disabled={!displayedCanAdd || isBusy}
               onClick={onAddTool}
@@ -109,11 +108,8 @@ export function ModalVerPrestamos({
             Cargando préstamos...
           </div>
         ) : displayedLoans.length > 0 ? (
-          <div className="max-h-[52vh] space-y-2 overflow-y-auto pr-1">
-            {displayedLoans.map((loan) => {
-              const extra = detalleUnidad(loan.unidad)
-
-              return (
+          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+            {displayedLoans.map((loan) => (
                 <div
                   key={loan.id}
                   className="flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center"
@@ -126,10 +122,10 @@ export function ModalVerPrestamos({
                       <p className="truncate font-medium">
                         {nombreUnidad(loan.unidad)}
                       </p>
-                      <p className="text-xs text-muted-foreground">
-                        {categoriaUnidad(loan.unidad)}
-                        {extra ? ` · ${extra}` : ""}
-                      </p>
+                      <DetalleUnidadPrestamo
+                        unidad={loan.unidad}
+                        className="text-xs"
+                      />
                       <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
                         <Clock className="size-3" />
                         Prestada {formatBorrowedAt(loan.prestamo?.fecha_prestamo ?? "")}
@@ -147,8 +143,7 @@ export function ModalVerPrestamos({
                     {returningId === loan.id ? "Devolviendo..." : "Devolver"}
                   </Button>
                 </div>
-              )
-            })}
+            ))}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-10 text-center">
@@ -160,7 +155,7 @@ export function ModalVerPrestamos({
           </div>
         )}
 
-        <DialogFooter>
+        <DialogFooter className="mt-auto">
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cerrar
           </Button>

@@ -11,16 +11,20 @@ export const UNIDAD_ESTADO_PRESTADA = 2
 export const SIN_COLOR = "sin_color" as const
 
 export const COLORES_UNIDAD = [
-  { value: SIN_COLOR, label: "Sin color" },
-  { value: "rojo", label: "Rojo" },
-  { value: "amarillo", label: "Amarillo" },
-  { value: "verde", label: "Verde" },
-  { value: "azul", label: "Azul" },
-  { value: "celeste", label: "Celeste" },
-  { value: "blanco", label: "Blanco" },
-  { value: "negro", label: "Negro" },
-  { value: "naranja", label: "Naranja" },
-  { value: "camuflado", label: "Camuflado" },
+  { value: SIN_COLOR, label: "Sin Color", muestra: "" },
+  { value: "rojo", label: "Rojo", muestra: "bg-red-500" },
+  { value: "amarillo", label: "Amarillo", muestra: "bg-yellow-400" },
+  { value: "verde", label: "Verde", muestra: "bg-green-600" },
+  { value: "azul", label: "Azul", muestra: "bg-blue-600" },
+  { value: "celeste", label: "Celeste", muestra: "bg-sky-400" },
+  { value: "blanco", label: "Blanco", muestra: "border border-zinc-300 bg-white" },
+  { value: "negro", label: "Negro", muestra: "bg-zinc-900" },
+  { value: "naranja", label: "Naranja", muestra: "bg-orange-500" },
+  {
+    value: "camuflado",
+    label: "Camuflado",
+    muestra: "bg-[linear-gradient(135deg,#3f6212_0%,#78716c_45%,#365314_70%,#a8a29e_100%)]",
+  },
 ] as const
 
 export type ColorUnidad = Exclude<
@@ -128,7 +132,24 @@ export function etiquetaColoresUnidad(
     .filter((color): color is ColorUnidad => Boolean(color))
     .map((color) => COLORES_UNIDAD.find((item) => item.value === color)?.label ?? color)
 
-  return nombres.length > 0 ? nombres.join(" + ") : "Sin color"
+  return nombres.length > 0 ? nombres.join(" + ") : "Sin Color"
+}
+
+export function etiquetaColorUnidad(color: ColorUnidad) {
+  return COLORES_UNIDAD.find((item) => item.value === color)?.label ?? color
+}
+
+export function muestraColorUnidad(color: ColorUnidad) {
+  return COLORES_UNIDAD.find((item) => item.value === color)?.muestra ?? "bg-muted"
+}
+
+export function coloresUnidadVisibles(
+  colorPrimario: ColorUnidadSeleccion | null | undefined,
+  colorSecundario: ColorUnidadSeleccion | null | undefined,
+) {
+  return [colorPrimario, colorSecundario].filter(
+    (color): color is ColorUnidad => Boolean(color) && color !== SIN_COLOR,
+  )
 }
 
 export function toDateInput(value: string | null | undefined) {

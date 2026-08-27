@@ -9,6 +9,7 @@ import { Usuarios } from "@/pages/Usuarios";
 import { Backup } from "@/pages/Backup";
 import { PuntoPrestamos } from "@/pages/PuntoPrestamos";
 import { Herramientas } from "@/pages/Herramientas";
+import { Combinadas } from "@/pages/Combinadas";
 import { Categorias } from "@/pages/Categorias";
 import { Ubicaciones } from "@/pages/Ubicaciones";
 import { Marcas } from "@/pages/Marcas";
@@ -20,6 +21,7 @@ const pages = [
   { path: "inicio", element: <Inicio /> },
   { path: "punto-prestamos", element: <PuntoPrestamos /> },
   { path: "herramientas", element: <Herramientas /> },
+  { path: "combinadas", element: <Combinadas /> },
   { path: "categorias", element: <Categorias /> },
   { path: "ubicaciones", element: <Ubicaciones /> },
   { path: "marcas", element: <Marcas /> },

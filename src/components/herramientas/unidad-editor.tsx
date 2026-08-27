@@ -158,51 +158,53 @@ export function UnidadCampos({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <ColorSelect
-          id={`${idPrefix}-color-primario`}
-          label="Color principal"
-          value={values.color_primario}
-          disabled={disabled}
-          error={errors.color_primario}
-          onChange={(value) => {
-            onChange({
-              ...values,
-              color_primario: value,
-              color_secundario:
-                value === SIN_COLOR ? SIN_COLOR : values.color_secundario,
-            })
-          }}
-        />
-        <ColorSelect
-          id={`${idPrefix}-color-secundario`}
-          label="Segundo color"
-          value={values.color_secundario}
-          disabled={disabled || values.color_primario === SIN_COLOR}
-          error={errors.color_secundario}
-          onChange={(value) => set("color_secundario", value)}
-        />
-      </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <ColorSelect
+            id={`${idPrefix}-color-primario`}
+            label="Color 1"
+            value={values.color_primario}
+            disabled={disabled}
+            error={errors.color_primario}
+            onChange={(value) => {
+              onChange({
+                ...values,
+                color_primario: value,
+                color_secundario:
+                  value === SIN_COLOR ? SIN_COLOR : values.color_secundario,
+              })
+            }}
+          />
+          <ColorSelect
+            id={`${idPrefix}-color-secundario`}
+            label="Color 2"
+            value={values.color_secundario}
+            disabled={disabled || values.color_primario === SIN_COLOR}
+            error={errors.color_secundario}
+            onChange={(value) => set("color_secundario", value)}
+          />
+        </div>
 
-      <div className="space-y-2">
-        <label htmlFor={`${idPrefix}-tamano`} className="text-sm font-medium">
-          Tamaño
-          <span className="ml-1 font-normal text-muted-foreground">
-            (opcional)
-          </span>
-        </label>
-        <Input
-          id={`${idPrefix}-tamano`}
-          className="h-8"
-          maxLength={50}
-          placeholder='Ej. 11 mm, 3/8" o grande'
-          value={values.tamano}
-          disabled={disabled}
-          aria-invalid={Boolean(errors.tamano)}
-          onChange={(event) => set("tamano", event.target.value)}
-        />
-        {errors.tamano ? (
-          <p className="text-sm text-destructive">{errors.tamano}</p>
-        ) : null}
+        <div className="space-y-2">
+          <label htmlFor={`${idPrefix}-tamano`} className="text-sm font-medium">
+            Tamaño
+            <span className="ml-1 font-normal text-muted-foreground">
+              (opcional)
+            </span>
+          </label>
+          <Input
+            id={`${idPrefix}-tamano`}
+            className="h-8"
+            maxLength={50}
+            placeholder='Ej. 11 mm, 3/8" o grande'
+            value={values.tamano}
+            disabled={disabled}
+            aria-invalid={Boolean(errors.tamano)}
+            onChange={(event) => set("tamano", event.target.value)}
+          />
+          {errors.tamano ? (
+            <p className="text-sm text-destructive">{errors.tamano}</p>
+          ) : null}
+        </div>
       </div>
 
       <div className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2">
@@ -291,6 +293,7 @@ export type UnidadTablaFila = {
   observaciones?: string
   estado?: string
   disableActions?: boolean
+  pending?: boolean
 }
 
 type UnidadesMiniTablaProps = {
@@ -334,10 +337,16 @@ export function UnidadesMiniTabla({
             </TableRow>
           ) : (
             filas.map((fila) => (
-              <TableRow key={fila.id}>
+              <TableRow
+                key={fila.id}
+                className={cn(
+                  fila.pending &&
+                    "border-l-4 border-l-sky-400 bg-sky-500/8 hover:bg-sky-500/12 dark:border-l-sky-300",
+                )}
+              >
                 <TableCell className="font-medium">{fila.marca}</TableCell>
                 <TableCell>{fila.ubicacion}</TableCell>
-                <TableCell>{fila.colores || "Sin color"}</TableCell>
+                <TableCell>{fila.colores || "Sin Color"}</TableCell>
                 <TableCell>{fila.tamano || "—"}</TableCell>
                 <TableCell className="text-muted-foreground">
                   {fila.calibracion || "—"}
@@ -352,7 +361,7 @@ export function UnidadesMiniTabla({
                     {onEdit ? (
                       <Button
                         type="button"
-                        variant="ghost"
+                        variant="warning"
                         size="icon-sm"
                         disabled={fila.disableActions}
                         aria-label="Editar unidad"
@@ -363,7 +372,7 @@ export function UnidadesMiniTabla({
                     ) : null}
                     <Button
                       type="button"
-                      variant="ghost"
+                      variant="destructive"
                       size="icon-sm"
                       disabled={fila.disableActions}
                       aria-label="Quitar unidad"
@@ -381,6 +390,10 @@ export function UnidadesMiniTabla({
     </div>
   )
 }
+
+const COLORES_UNIDAD_ITEMS = Object.fromEntries(
+  COLORES_UNIDAD.map((color) => [color.value, color.label]),
+)
 
 function ColorSelect({
   id,
@@ -404,12 +417,13 @@ function ColorSelect({
       </label>
       <Select
         value={value}
+        items={COLORES_UNIDAD_ITEMS}
         disabled={disabled}
         onValueChange={(nextValue) => {
           if (nextValue) onChange(nextValue as ColorUnidadSeleccion)
         }}
       >
-        <SelectTrigger id={id} className="h-8" aria-invalid={Boolean(error)}>
+        <SelectTrigger id={id} className="h-8 w-full" aria-invalid={Boolean(error)}>
           <SelectValue />
         </SelectTrigger>
         <SelectContent alignItemWithTrigger={false}>
@@ -437,9 +451,14 @@ export function BotonAgregarUnidad({
   onClick,
 }: BotonAgregarUnidadProps) {
   return (
-    <Button type="button" variant="outline" disabled={disabled} onClick={onClick}>
+    <Button
+      type="button"
+      variant={isEditing ? "info" : "success"}
+      disabled={disabled}
+      onClick={onClick}
+    >
       <Plus data-icon="inline-start" />
-      {isEditing ? "Guardar unidad" : "Agregar unidad"}
+      {isEditing ? "Actualizar unidad" : "Agregar unidad"}
     </Button>
   )
 }

@@ -41,7 +41,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { ICONO_ACCION } from "@/lib/acciones-color"
 import { ApiError } from "@/lib/api"
+import { toastExito } from "@/lib/toast"
 import {
   actualizarMecanico,
   cambiarEstadoMecanico,
@@ -124,6 +126,11 @@ export const Mecanicos = () => {
       try {
         await cambiarEstadoMecanico(mecanico.id, estado)
         await loadItems()
+        toastExito(
+          estado === MECANICO_ESTADO_ACTIVO
+            ? "Mecánico reactivado correctamente."
+            : "Mecánico desactivado correctamente.",
+        )
       } catch (error) {
         setPageError(
           error instanceof ApiError
@@ -227,7 +234,7 @@ export const Mecanicos = () => {
                     setIsFormOpen(true)
                   }}
                 >
-                  <Pencil />
+                  <Pencil className={ICONO_ACCION.editar} />
                   Editar
                 </DropdownMenuItem>
                 <DropdownMenuItem
@@ -240,7 +247,11 @@ export const Mecanicos = () => {
                     )
                   }}
                 >
-                  {estaActivo ? <CirclePause /> : <CirclePlay />}
+                  {estaActivo ? (
+                    <CirclePause className={ICONO_ACCION.desactivar} />
+                  ) : (
+                    <CirclePlay className={ICONO_ACCION.activar} />
+                  )}
                   {estaActivo ? "Marcar fuera de servicio" : "Reactivar"}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
@@ -272,8 +283,10 @@ export const Mecanicos = () => {
     try {
       if (editingItem) {
         await actualizarMecanico(editingItem.id, values)
+        toastExito("Mecánico actualizado correctamente.")
       } else {
         await crearMecanico(values)
+        toastExito("Mecánico creado correctamente.")
       }
 
       await loadItems()
@@ -311,6 +324,7 @@ export const Mecanicos = () => {
       await eliminarMecanico(deletingItem.id)
       await loadItems()
       setDeletingItem(null)
+      toastExito("Mecánico eliminado correctamente.")
     } catch (error) {
       setDeleteError(
         error instanceof ApiError
