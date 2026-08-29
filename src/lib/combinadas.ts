@@ -1,5 +1,6 @@
 import { api, listarTodosPaginados } from "@/lib/api"
 import type { HerramientaUnidad } from "@/lib/herramientas"
+import { compararPorBusquedaCorta } from "@/lib/prestamos"
 
 export const COMBINADA_ESTADO_ELIMINADA = 0
 export const COMBINADA_ESTADO_ACTIVA = 1
@@ -53,11 +54,13 @@ export function filtrarCombinadasPorBusqueda(combinadas: Combinada[], search: st
 
   if (!query) return combinadas
 
-  return combinadas.filter((combinada) =>
-    `${combinada.nombre} ${combinada.descripcion ?? ""} ${resumenCombinada(combinada)}`
-      .toLocaleLowerCase()
-      .includes(query),
-  )
+  return combinadas
+    .filter((combinada) =>
+      `${combinada.nombre} ${combinada.descripcion ?? ""} ${resumenCombinada(combinada)}`
+        .toLocaleLowerCase()
+        .includes(query),
+    )
+    .sort((a, b) => compararPorBusquedaCorta(a.nombre, b.nombre, query))
 }
 
 export async function listarCombinadas() {

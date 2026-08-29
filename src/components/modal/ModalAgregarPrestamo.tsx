@@ -27,6 +27,8 @@ import {
   type UnidadPrestamo,
 } from "@/lib/prestamos"
 
+type Filtro = "todas" | "combinadas"
+
 type ModalAgregarPrestamoProps = {
   open: boolean
   mechanic?: MecanicoPunto | null
@@ -51,11 +53,13 @@ export function ModalAgregarPrestamo({
   onSubmit,
 }: ModalAgregarPrestamoProps) {
   const [search, setSearch] = useState("")
+  const [filtro, setFiltro] = useState<Filtro>("todas")
   const [selectedIds, setSelectedIds] = useState<string[]>([])
 
   useEffect(() => {
     if (!open) return
     setSearch("")
+    setFiltro("todas")
     setSelectedIds([])
   }, [mechanic?.id, open])
 
@@ -76,6 +80,10 @@ export function ModalAgregarPrestamo({
       ),
     [availableIds, combinadas, search],
   )
+
+  const unidadesVisibles = filtro === "todas" ? filteredUnits : []
+  const hayResultados =
+    unidadesVisibles.length > 0 || filteredCombinadas.length > 0
 
   const toggleCombinada = (combinada: Combinada, checked: boolean) => {
     const ids = unidadesIdsCombinada(combinada)
@@ -155,9 +163,34 @@ export function ModalAgregarPrestamo({
             />
           </div>
 
-          <div className="flex items-center justify-between text-sm">
-            <span className="font-medium">Unidades disponibles</span>
-            <span className="text-muted-foreground">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant={filtro === "todas" ? "default" : "outline"}
+                aria-pressed={filtro === "todas"}
+                disabled={isSubmitting}
+                onClick={() => setFiltro("todas")}
+              >
+                Ver todas
+              </Button>
+              <Button
+                size="sm"
+                variant={filtro === "combinadas" ? "warning" : "outline"}
+                className={
+                  filtro === "combinadas"
+                    ? "border-amber-500/40 dark:border-amber-300/40"
+                    : undefined
+                }
+                aria-pressed={filtro === "combinadas"}
+                disabled={isSubmitting}
+                onClick={() => setFiltro("combinadas")}
+              >
+                <Combine data-icon="inline-start" />
+                Solo combinadas
+              </Button>
+            </div>
+            <span className="text-sm text-muted-foreground">
               {selectedIds.length} seleccionadas
             </span>
           </div>
@@ -166,8 +199,37 @@ export function ModalAgregarPrestamo({
             <div className="flex flex-1 items-center justify-center rounded-xl border border-dashed py-16 text-center text-base text-muted-foreground">
               Cargando unidades disponibles...
             </div>
-          ) : filteredUnits.length > 0 || filteredCombinadas.length > 0 ? (
+          ) : hayResultados ? (
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
+              {unidadesVisibles.map((unidad) => {
+                const isSelected = selectedIds.includes(unidad.id)
+
+                return (
+                  <label
+                    key={unidad.id}
+                    className="flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-colors hover:bg-muted/50 has-data-checked:border-primary has-data-checked:bg-muted/50"
+                  >
+                    <Checkbox
+                      className="size-4"
+                      checked={isSelected}
+                      disabled={isSubmitting}
+                      onCheckedChange={(checked) =>
+                        toggleUnit(unidad.id, checked === true)
+                      }
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-base font-medium">
+                        {nombreUnidad(unidad)}
+                      </p>
+                      <DetalleUnidadPrestamo
+                        unidad={unidad}
+                        className="mt-0.5 text-sm"
+                      />
+                    </div>
+                  </label>
+                )
+              })}
+
               {filteredCombinadas.map((combinada) => {
                 const ids = unidadesIdsCombinada(combinada)
                 const isSelected = ids.every((id) => selectedIds.includes(id))
@@ -200,42 +262,18 @@ export function ModalAgregarPrestamo({
                   </label>
                 )
               })}
-
-              {filteredUnits.map((unidad) => {
-                const isSelected = selectedIds.includes(unidad.id)
-
-                return (
-                  <label
-                    key={unidad.id}
-                    className="flex cursor-pointer items-center gap-3 rounded-xl border p-3 transition-colors hover:bg-muted/50 has-data-checked:border-primary has-data-checked:bg-muted/50"
-                  >
-                    <Checkbox
-                      className="size-4"
-                      checked={isSelected}
-                      disabled={isSubmitting}
-                      onCheckedChange={(checked) =>
-                        toggleUnit(unidad.id, checked === true)
-                      }
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-base font-medium">
-                        {nombreUnidad(unidad)}
-                      </p>
-                      <DetalleUnidadPrestamo
-                        unidad={unidad}
-                        className="mt-0.5 text-sm"
-                      />
-                    </div>
-                  </label>
-                )
-              })}
             </div>
           ) : (
             <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed py-16 text-center">
-              <p className="text-lg font-medium">No hay unidades disponibles</p>
+              <p className="text-lg font-medium">
+                {filtro === "combinadas"
+                  ? "No hay combinadas disponibles"
+                  : "No hay unidades disponibles"}
+              </p>
               <p className="mt-2 text-base text-muted-foreground">
-                Prueba con otra búsqueda o espera a que se devuelva alguna
-                unidad.
+                {filtro === "combinadas"
+                  ? "Una combinada solo aparece si todas sus unidades están libres. Prueba con “Ver todas”."
+                  : "Prueba con otra búsqueda o espera a que se devuelva alguna unidad."}
               </p>
             </div>
           )}
