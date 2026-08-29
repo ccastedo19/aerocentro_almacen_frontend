@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import { Download, RotateCcw, Upload } from "lucide-react"
+import { Download, RotateCcw, Trash2, Upload } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 
 import { ModalConfirmarRestaurarBackup } from "@/components/modal/ModalConfirmarRestaurarBackup"
@@ -26,6 +26,7 @@ import { ApiError } from "@/lib/api"
 import { toastExito } from "@/lib/toast"
 import {
   descargarBackupActual,
+  eliminarBackup,
   formatFechaBackup,
   formatTamanoBackup,
   listarBackups,
@@ -43,6 +44,7 @@ export const Backup = () => {
   const [isDownloading, setIsDownloading] = useState(false)
   const [isUploading, setIsUploading] = useState(false)
   const [isRestoring, setIsRestoring] = useState(false)
+  const [deletingId, setDeletingId] = useState("")
   const [pageError, setPageError] = useState("")
   const [restoreError, setRestoreError] = useState("")
   const [usingItem, setUsingItem] = useState<BackupItem | null>(null)
@@ -109,12 +111,31 @@ export const Backup = () => {
     } catch (error) {
       setPageError(
         error instanceof ApiError
-          ? error.errors.archivo?.[0] || error.message
+          ? error.errors.contenido?.[0] || error.message
           : "No se pudo subir el backup.",
       )
     } finally {
       setIsUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ""
+    }
+  }
+
+  const handleEliminar = async (item: BackupItem) => {
+    setDeletingId(item.id)
+    setPageError("")
+
+    try {
+      await eliminarBackup(item.id)
+      await loadItems()
+      toastExito("Backup eliminado correctamente.")
+    } catch (error) {
+      setPageError(
+        error instanceof ApiError
+          ? error.message
+          : "No se pudo eliminar el backup.",
+      )
+    } finally {
+      setDeletingId("")
     }
   }
 
@@ -278,18 +299,40 @@ export const Backup = () => {
                           {formatTamanoBackup(item.tamano)}
                         </TableCell>
                         <TableCell className="px-4 py-3 text-right">
-                          <Button
-                            type="button"
-                            size="sm"
-                            variant="warning"
-                            onClick={() => {
-                              setRestoreError("")
-                              setUsingItem(item)
-                            }}
-                          >
-                            <RotateCcw data-icon="inline-start" />
-                            Usar
-                          </Button>
+                          {item.disponible ? (
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="warning"
+                              onClick={() => {
+                                setRestoreError("")
+                                setUsingItem(item)
+                              }}
+                            >
+                              <RotateCcw data-icon="inline-start" />
+                              Usar
+                            </Button>
+                          ) : (
+                            <div className="flex items-center justify-end gap-2">
+                              <span className="text-xs text-muted-foreground">
+                                Archivo no disponible
+                              </span>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="destructive"
+                                disabled={deletingId === item.id}
+                                onClick={() => {
+                                  void handleEliminar(item)
+                                }}
+                              >
+                                <Trash2 data-icon="inline-start" />
+                                {deletingId === item.id
+                                  ? "Eliminando..."
+                                  : "Eliminar"}
+                              </Button>
+                            </div>
+                          )}
                         </TableCell>
                       </TableRow>
                     ))}

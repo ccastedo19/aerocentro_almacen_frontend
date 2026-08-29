@@ -230,6 +230,10 @@ function getErrorMessage(status: number, payload: unknown) {
     return "La sesión no es válida o ha expirado."
   }
 
+  if (status === 403) {
+    return "No tienes permiso para esta acción."
+  }
+
   return "No se pudo completar la solicitud."
 }
 
