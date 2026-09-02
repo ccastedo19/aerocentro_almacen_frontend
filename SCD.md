@@ -30,8 +30,8 @@ Proveer una interfaz de usuario moderna, rápida e intuitiva para los almacenist
 <!-- AUTO:metadata:START -->
 - **Proyecto**: tienda_componentes_full
 - **Versión**: 0.0.0
-- **Última actualización automática**: 2026-09-02T02:52:03.321Z
-- **Última modificación en `src/`**: 2026-08-21T03:24:23.497Z
+- **Última actualización automática**: 2026-09-02T15:51:43.212Z
+- **Última modificación en `src/`**: 2026-08-28T13:01:15.566Z
 <!-- AUTO:metadata:END -->
 
 ---

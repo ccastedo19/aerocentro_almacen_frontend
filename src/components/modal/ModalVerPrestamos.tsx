@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react"
-import { Clock, PackageOpen, Plus, RotateCcw, Wrench } from "lucide-react"
+import { useEffect, useMemo, useState } from "react"
+import { Clock, PackageOpen, Plus, RotateCcw, Search, Wrench, X } from "lucide-react"
 
 import { AlertError } from "@/components/ui/alert-error"
 import { Button } from "@/components/ui/button"
@@ -11,11 +11,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
 import { useClosingSnapshot } from "@/hooks/use-closing-snapshot"
 import { DetalleUnidadPrestamo } from "@/components/prestamos/detalle-unidad-prestamo"
 import {
+  compararPorBusquedaCorta,
   formatBorrowedAt,
   nombreUnidad,
+  textoBusquedaUnidad,
   type DetallePrestamoActivo,
   type MecanicoPunto,
 } from "@/lib/prestamos"
@@ -52,10 +55,14 @@ export function ModalVerPrestamos({
   onReturnAll,
 }: ModalVerPrestamosProps) {
   const [isConfirmingReturnAll, setIsConfirmingReturnAll] = useState(false)
+  const [search, setSearch] = useState("")
 
   useEffect(() => {
     if (!open || loans.length === 0) {
       setIsConfirmingReturnAll(false)
+    }
+    if (open) {
+      setSearch("")
     }
   }, [open, loans.length])
 
@@ -65,6 +72,32 @@ export function ModalVerPrestamos({
   const displayedError = useClosingSnapshot(open, error)
   const displayedCanAdd = useClosingSnapshot(open, canAdd)
   const isBusy = Boolean(returningId) || isReturningAll
+
+  const filteredLoans = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase()
+    const source = search.trim() ? loans : displayedLoans
+
+    if (!query) return source
+
+    return source
+      .filter((loan) => {
+        const haystack = [
+          textoBusquedaUnidad(loan.unidad),
+          loan.unidad?.observaciones ?? "",
+        ]
+          .join(" ")
+          .toLocaleLowerCase()
+
+        return haystack.includes(query)
+      })
+      .sort((a, b) =>
+        compararPorBusquedaCorta(
+          nombreUnidad(a.unidad),
+          nombreUnidad(b.unidad),
+          query,
+        ),
+      )
+  }, [displayedLoans, loans, search])
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) {
@@ -91,12 +124,47 @@ export function ModalVerPrestamos({
             <AlertError onClose={() => onDismissError?.()}>{displayedError}</AlertError>
           ) : null}
 
+          {/* Buscador de herramientas prestadas */}
+          <div className="relative">
+            <label htmlFor="search-active-loans" className="sr-only">
+              Buscar herramientas prestadas
+            </label>
+            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              id="search-active-loans"
+              className="h-10 pr-9 pl-9 text-sm"
+              placeholder="Buscar por herramienta, marca, ubicación, tamaño o color..."
+              value={search}
+              disabled={displayedLoans.length === 0 || displayedLoading}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            {search.trim() ? (
+              <button
+                type="button"
+                className="absolute top-1/2 right-3 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                onClick={() => setSearch("")}
+                aria-label="Limpiar búsqueda"
+              >
+                <X className="size-4" />
+              </button>
+            ) : null}
+          </div>
+
           <div className="flex flex-col gap-3 border-y py-3 sm:flex-row sm:items-center sm:justify-between">
             <span className="text-sm font-medium">
-              {displayedLoans.length}{" "}
-              {displayedLoans.length === 1
-                ? "herramienta activa"
-                : "herramientas activas"}
+              {search.trim() ? (
+                <>
+                  {filteredLoans.length} de {displayedLoans.length}{" "}
+                  {displayedLoans.length === 1 ? "herramienta" : "herramientas"}
+                </>
+              ) : (
+                <>
+                  {displayedLoans.length}{" "}
+                  {displayedLoans.length === 1
+                    ? "herramienta activa"
+                    : "herramientas activas"}
+                </>
+              )}
             </span>
             <div className="flex flex-col gap-2 sm:flex-row">
               <Button
@@ -125,43 +193,61 @@ export function ModalVerPrestamos({
               Cargando préstamos...
             </div>
           ) : displayedLoans.length > 0 ? (
-            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
-              {displayedLoans.map((loan) => (
-                <div
-                  key={loan.id}
-                  className="flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center"
-                >
-                  <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
-                      <Wrench className="size-4 text-muted-foreground" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate font-medium">
-                        {nombreUnidad(loan.unidad)}
-                      </p>
-                      <DetalleUnidadPrestamo
-                        unidad={loan.unidad}
-                        className="text-xs"
-                      />
-                      <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-                        <Clock className="size-3" />
-                        Prestada {formatBorrowedAt(loan.prestamo?.fecha_prestamo ?? "")}
-                      </p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="sm:shrink-0"
-                    disabled={isBusy}
-                    onClick={() => onReturnTool(loan.id)}
+            filteredLoans.length > 0 ? (
+              <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+                {filteredLoans.map((loan) => (
+                  <div
+                    key={loan.id}
+                    className="flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center"
                   >
-                    <RotateCcw data-icon="inline-start" />
-                    {returningId === loan.id ? "Devolviendo..." : "Devolver"}
-                  </Button>
-                </div>
-              ))}
-            </div>
+                    <div className="flex min-w-0 flex-1 items-center gap-3">
+                      <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
+                        <Wrench className="size-4 text-muted-foreground" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate font-medium">
+                          {nombreUnidad(loan.unidad)}
+                        </p>
+                        <DetalleUnidadPrestamo
+                          unidad={loan.unidad}
+                          className="text-xs"
+                        />
+                        <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+                          <Clock className="size-3" />
+                          Prestada {formatBorrowedAt(loan.prestamo?.fecha_prestamo ?? "")}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      className="sm:shrink-0"
+                      disabled={isBusy}
+                      onClick={() => onReturnTool(loan.id)}
+                    >
+                      <RotateCcw data-icon="inline-start" />
+                      {returningId === loan.id ? "Devolviendo..." : "Devolver"}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <Search className="mb-3 size-9 text-muted-foreground" />
+                <p className="font-medium">No se encontraron herramientas</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  No hay préstamos activos que coincidan con &ldquo;{search}&rdquo;.
+                </p>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="mt-3 text-xs"
+                  onClick={() => setSearch("")}
+                >
+                  Limpiar búsqueda
+                </Button>
+              </div>
+            )
           ) : (
             <div className="flex flex-col items-center justify-center py-10 text-center">
               <PackageOpen className="mb-3 size-9 text-muted-foreground" />

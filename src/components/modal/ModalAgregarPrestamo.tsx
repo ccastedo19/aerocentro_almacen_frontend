@@ -216,7 +216,6 @@ export function ModalAgregarPrestamo({
   const hasGeneralSearch = Boolean(search.trim())
   const disabledGeneral = !hasGeneralSearch || isSubmitting
   const disabledColor2 = disabledGeneral || !filtros.color1.trim()
-  const disabledColor3 = disabledColor2 || !filtros.color2.trim()
 
   const toggleCombinada = useCallback((combinada: Combinada, checked: boolean) => {
     const ids = unidadesIdsCombinada(combinada)
@@ -321,7 +320,7 @@ export function ModalAgregarPrestamo({
             </div>
 
             {/* Buscadores secundarios (Filtros/Comboboxes) en 6 columnas */}
-            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
               {/* Sugerencias de datalist */}
               <datalist id="list-color1">
                 {opcionesColor.map((color) => (
@@ -332,18 +331,6 @@ export function ModalAgregarPrestamo({
               <datalist id="list-color2">
                 {opcionesColor
                   .filter((c) => c.toLowerCase() !== filtros.color1.toLowerCase())
-                  .map((color) => (
-                    <option key={color} value={color} />
-                  ))}
-              </datalist>
-
-              <datalist id="list-color3">
-                {opcionesColor
-                  .filter(
-                    (c) =>
-                      c.toLowerCase() !== filtros.color1.toLowerCase() &&
-                      c.toLowerCase() !== filtros.color2.toLowerCase(),
-                  )
                   .map((color) => (
                     <option key={color} value={color} />
                   ))}
@@ -404,22 +391,6 @@ export function ModalAgregarPrestamo({
                       color2: val,
                       color3: val.trim() ? prev.color3 : "",
                     }))
-                  }}
-                />
-              </div>
-
-              {/* Color 3 */}
-              <div className="relative">
-                <Search className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  className="h-9 pl-8 text-sm"
-                  placeholder="Color 3"
-                  value={filtros.color3}
-                  list="list-color3"
-                  disabled={disabledColor3}
-                  onChange={(e) => {
-                    const val = e.target.value
-                    setFiltros((prev) => ({ ...prev, color3: val }))
                   }}
                 />
               </div>
