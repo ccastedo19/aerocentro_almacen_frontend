@@ -11,6 +11,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { ComboboxFiltro } from "@/components/form/combobox-filtro"
 import { DetalleUnidadPrestamo } from "@/components/prestamos/detalle-unidad-prestamo"
 import { etiquetaColorUnidad } from "@/lib/herramientas"
 import {
@@ -159,6 +160,14 @@ export function ModalAgregarPrestamo({
         ]),
       ),
     [availableUnits],
+  )
+
+  const opcionesColor2 = useMemo(
+    () =>
+      opcionesColor.filter(
+        (c) => c.toLowerCase() !== filtros.color1.trim().toLowerCase(),
+      ),
+    [opcionesColor, filtros.color1],
   )
 
   const opcionesMarca = useMemo(
@@ -319,126 +328,71 @@ export function ModalAgregarPrestamo({
               ) : null}
             </div>
 
-            {/* Buscadores secundarios (Filtros/Comboboxes) en 6 columnas */}
+            {/* Buscadores secundarios (Filtros/Comboboxes) en 5 columnas */}
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
-              {/* Sugerencias de datalist */}
-              <datalist id="list-color1">
-                {opcionesColor.map((color) => (
-                  <option key={color} value={color} />
-                ))}
-              </datalist>
-
-              <datalist id="list-color2">
-                {opcionesColor
-                  .filter((c) => c.toLowerCase() !== filtros.color1.toLowerCase())
-                  .map((color) => (
-                    <option key={color} value={color} />
-                  ))}
-              </datalist>
-
-              <datalist id="list-marca">
-                {opcionesMarca.map((marca) => (
-                  <option key={marca} value={marca} />
-                ))}
-              </datalist>
-
-              <datalist id="list-tamano">
-                {opcionesTamano.map((tamano) => (
-                  <option key={tamano} value={tamano} />
-                ))}
-              </datalist>
-
-              <datalist id="list-ubicacion">
-                {opcionesUbicacion.map((ubicacion) => (
-                  <option key={ubicacion} value={ubicacion} />
-                ))}
-              </datalist>
-
               {/* Color 1 */}
-              <div className="relative">
-                <Search className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  className="h-9 pl-8 text-sm"
-                  placeholder="Color 1"
-                  value={filtros.color1}
-                  list="list-color1"
-                  disabled={disabledGeneral}
-                  onChange={(e) => {
-                    const val = e.target.value
-                    setFiltros((prev) => ({
-                      ...prev,
-                      color1: val,
-                      color2: val.trim() ? prev.color2 : "",
-                      color3: val.trim() ? prev.color3 : "",
-                    }))
-                  }}
-                />
-              </div>
+              <ComboboxFiltro
+                placeholder="Color 1"
+                value={filtros.color1}
+                options={opcionesColor}
+                disabled={disabledGeneral}
+                onChange={(val) => {
+                  setFiltros((prev) => ({
+                    ...prev,
+                    color1: val,
+                    color2: val.trim() ? prev.color2 : "",
+                    color3: val.trim() ? prev.color3 : "",
+                  }))
+                }}
+              />
 
               {/* Color 2 */}
-              <div className="relative">
-                <Search className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  className="h-9 pl-8 text-sm"
-                  placeholder="Color 2"
-                  value={filtros.color2}
-                  list="list-color2"
-                  disabled={disabledColor2}
-                  onChange={(e) => {
-                    const val = e.target.value
-                    setFiltros((prev) => ({
-                      ...prev,
-                      color2: val,
-                      color3: val.trim() ? prev.color3 : "",
-                    }))
-                  }}
-                />
-              </div>
+              <ComboboxFiltro
+                placeholder="Color 2"
+                value={filtros.color2}
+                options={opcionesColor2}
+                disabled={disabledColor2}
+                onChange={(val) => {
+                  setFiltros((prev) => ({
+                    ...prev,
+                    color2: val,
+                    color3: val.trim() ? prev.color3 : "",
+                  }))
+                }}
+              />
 
               {/* Marca */}
-              <div className="relative">
-                <Search className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  className="h-9 pl-8 text-sm"
-                  placeholder="Marca"
-                  value={filtros.marca}
-                  list="list-marca"
-                  disabled={disabledGeneral}
-                  onChange={(e) =>
-                    setFiltros((prev) => ({ ...prev, marca: e.target.value }))
-                  }
-                />
-              </div>
+              <ComboboxFiltro
+                placeholder="Marca"
+                value={filtros.marca}
+                options={opcionesMarca}
+                disabled={disabledGeneral}
+                onChange={(val) =>
+                  setFiltros((prev) => ({ ...prev, marca: val }))
+                }
+              />
 
               {/* Tamaño */}
-              <div className="relative">
-                <Search className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  className="h-9 pl-8 text-sm"
-                  placeholder="Tamaño"
-                  value={filtros.tamano}
-                  list="list-tamano"
-                  disabled={disabledGeneral}
-                  onChange={(e) =>
-                    setFiltros((prev) => ({ ...prev, tamano: e.target.value }))
-                  }
-                />
-              </div>
+              <ComboboxFiltro
+                placeholder="Tamaño"
+                value={filtros.tamano}
+                options={opcionesTamano}
+                disabled={disabledGeneral}
+                onChange={(val) =>
+                  setFiltros((prev) => ({ ...prev, tamano: val }))
+                }
+              />
 
               {/* Ubicación */}
-              <div className="relative">
-                <Search className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  className="h-9 pl-8 text-sm"
-                  placeholder="Ubicación"
-                  value={filtros.ubicacion}
-                  list="list-ubicacion"
-                  disabled={disabledGeneral}
-                  onChange={(e) =>
-                    setFiltros((prev) => ({ ...prev, ubicacion: e.target.value }))
-                  }
-                />
-              </div>
+              <ComboboxFiltro
+                placeholder="Ubicación"
+                value={filtros.ubicacion}
+                options={opcionesUbicacion}
+                disabled={disabledGeneral}
+                onChange={(val) =>
+                  setFiltros((prev) => ({ ...prev, ubicacion: val }))
+                }
+              />
             </div>
           </div>
 
@@ -481,12 +435,15 @@ export function ModalAgregarPrestamo({
                 Ver Seleccionadas
               </Button>
 
-              {/* Botón para Limpiar los comboboxes */}
+              {/* Botón para Limpiar los buscadores */}
               <Button
                 size="sm"
                 variant="destructive"
-                disabled={disabledGeneral || filtrosUnidadVacios(filtros)}
-                onClick={() => setFiltros(FILTROS_UNIDAD_VACIOS)}
+                disabled={isSubmitting || (!search.trim() && filtrosUnidadVacios(filtros))}
+                onClick={() => {
+                  setSearch("")
+                  setFiltros(FILTROS_UNIDAD_VACIOS)
+                }}
               >
                 <RotateCcw data-icon="inline-start" className="size-3.5" />
                 Limpiar Buscadores

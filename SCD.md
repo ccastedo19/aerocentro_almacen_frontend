@@ -30,7 +30,7 @@ Proveer una interfaz de usuario moderna, rápida e intuitiva para los almacenist
 <!-- AUTO:metadata:START -->
 - **Proyecto**: tienda_componentes_full
 - **Versión**: 0.0.0
-- **Última actualización automática**: 2026-09-02T15:51:43.212Z
+- **Última actualización automática**: 2026-09-02T21:06:27.839Z
 - **Última modificación en `src/`**: 2026-08-28T13:01:15.566Z
 <!-- AUTO:metadata:END -->
 
@@ -162,6 +162,7 @@ src/
 - `src/components/app-sidebar.tsx`
 - `src/components/auth-guards.tsx`
 - `src/components/auth-provider.tsx`
+- `src/components/form/combobox-filtro.tsx`
 - `src/components/form/creatable-named-select.tsx`
 - `src/components/form/named-select.tsx`
 - `src/components/herramientas/unidad-editor.tsx`
