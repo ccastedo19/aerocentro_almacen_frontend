@@ -249,7 +249,7 @@ export function ModalVerUnidades({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-5xl">
+        <DialogContent className="max-h-[90vh] w-[min(96vw,84rem)] max-w-none overflow-y-auto p-6 sm:max-w-none">
           <DialogHeader>
             <DialogTitle>Unidades de {herramienta?.nombre ?? "la herramienta"}</DialogTitle>
             <DialogDescription>
@@ -310,6 +310,7 @@ export function ModalVerUnidades({
                 filas={[
                   ...pendingUnits.map((unidad) => ({
                     id: unidad.id,
+                    herramienta: herramienta?.nombre ?? "—",
                     marca:
                       marcas.find((item) => item.id === unidad.values.marca_id)
                         ?.nombre ?? "—",
@@ -331,9 +332,11 @@ export function ModalVerUnidades({
                       unidad.values.fecha_calibracion,
                     estado: "Pendiente de guardar",
                     pending: true,
+                    editing: editingPendingId === unidad.id,
                   })),
                   ...unidades.map((unidad) => ({
                     id: unidad.id,
+                    herramienta: herramienta?.nombre ?? "—",
                     marca: unidad.marca?.nombre ?? "—",
                     ubicacion:
                       ubicaciones.find((item) => item.id === unidad.ubicacion_id)
@@ -350,6 +353,7 @@ export function ModalVerUnidades({
                       toDateInput(unidad.fecha_calibracion),
                     estado: etiquetaEstadoUnidad(unidad.estado),
                     disableActions: unidad.estado === UNIDAD_ESTADO_PRESTADA,
+                    editing: editingUnidad?.id === unidad.id,
                   })),
                 ]}
                 emptyMessage="Esta herramienta aún no tiene unidades."

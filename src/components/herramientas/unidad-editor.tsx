@@ -285,6 +285,7 @@ export function UnidadCampos({
 
 export type UnidadTablaFila = {
   id: string
+  herramienta?: string
   marca: string
   ubicacion: string
   colores?: string
@@ -294,6 +295,7 @@ export type UnidadTablaFila = {
   estado?: string
   disableActions?: boolean
   pending?: boolean
+  editing?: boolean
 }
 
 type UnidadesMiniTablaProps = {
@@ -309,13 +311,19 @@ export function UnidadesMiniTabla({
   onEdit,
   onDelete,
 }: UnidadesMiniTablaProps) {
-  const mostrarEstado = filas.some((fila) => fila.estado)
+  const mostrarHerramienta = filas.some((fila) => Boolean(fila.herramienta))
+  const mostrarEstado = filas.some((fila) => Boolean(fila.estado))
+
+  let colSpan = 6
+  if (mostrarHerramienta) colSpan += 1
+  if (mostrarEstado) colSpan += 1
 
   return (
     <div className="overflow-hidden rounded-xl border bg-card ring-1 ring-foreground/10">
       <Table>
         <TableHeader>
           <TableRow className="hover:bg-transparent">
+            {mostrarHerramienta ? <TableHead>Herramienta</TableHead> : null}
             <TableHead>Marca</TableHead>
             <TableHead>Ubicación</TableHead>
             <TableHead>Color</TableHead>
@@ -329,7 +337,7 @@ export function UnidadesMiniTabla({
           {filas.length === 0 ? (
             <TableRow className="hover:bg-transparent">
               <TableCell
-                colSpan={mostrarEstado ? 7 : 6}
+                colSpan={colSpan}
                 className="h-16 text-center text-muted-foreground"
               >
                 {emptyMessage}
@@ -341,10 +349,20 @@ export function UnidadesMiniTabla({
                 key={fila.id}
                 className={cn(
                   fila.pending &&
-                    "border-l-4 border-l-sky-400 bg-sky-500/8 hover:bg-sky-500/12 dark:border-l-sky-300",
+                  !fila.editing &&
+                  "border-l-4 border-l-sky-400 bg-sky-500/8 hover:bg-sky-500/12 dark:border-l-sky-300",
+                  fila.editing &&
+                  "border-l-4 border-l-amber-400 bg-amber-400/15 hover:bg-amber-400/20 dark:border-l-amber-400 dark:bg-amber-400/15 font-semibold text-amber-950 dark:text-amber-100",
                 )}
               >
-                <TableCell className="font-medium">{fila.marca}</TableCell>
+                {mostrarHerramienta ? (
+                  <TableCell className="font-semibold text-foreground">
+                    {fila.herramienta}
+                  </TableCell>
+                ) : null}
+                <TableCell className={cn(!mostrarHerramienta && "font-medium")}>
+                  {fila.marca}
+                </TableCell>
                 <TableCell>{fila.ubicacion}</TableCell>
                 <TableCell>{fila.colores || "Sin Color"}</TableCell>
                 <TableCell>{fila.tamano || "—"}</TableCell>
@@ -453,7 +471,7 @@ export function BotonAgregarUnidad({
   return (
     <Button
       type="button"
-      variant={isEditing ? "info" : "success"}
+      variant={isEditing ? "warning" : "success"}
       disabled={disabled}
       onClick={onClick}
     >

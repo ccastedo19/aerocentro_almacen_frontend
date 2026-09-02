@@ -57,6 +57,25 @@ export function getInicialesMecanico(mecanico: Pick<Mecanico, "nombre" | "apelli
   return `${nombre}${apellido}`.toUpperCase() || "M"
 }
 
+export function optimizarImagenMecanico(
+  url?: string | null,
+  width = 400,
+  height = 400,
+): string {
+  if (!url) return ""
+
+  // Si es una URL de Cloudinary, inyectamos optimización automática de nitidez y enfoque facial
+  if (url.includes("res.cloudinary.com") && url.includes("/upload/")) {
+    if (url.includes("/c_fill") || url.includes("/q_auto")) {
+      return url
+    }
+    const transformacion = `c_fill,g_face,w_${width},h_${height},q_auto:best,f_auto`
+    return url.replace("/upload/", `/upload/${transformacion}/`)
+  }
+
+  return url
+}
+
 export function etiquetaEstadoMecanico(estado: number) {
   if (estado === MECANICO_ESTADO_FUERA_DE_SERVICIO) {
     return "Fuera de servicio"

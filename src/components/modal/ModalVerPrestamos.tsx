@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react"
 import { Clock, PackageOpen, Plus, RotateCcw, Wrench } from "lucide-react"
 
 import { AlertError } from "@/components/ui/alert-error"
@@ -50,6 +51,14 @@ export function ModalVerPrestamos({
   onReturnTool,
   onReturnAll,
 }: ModalVerPrestamosProps) {
+  const [isConfirmingReturnAll, setIsConfirmingReturnAll] = useState(false)
+
+  useEffect(() => {
+    if (!open || loans.length === 0) {
+      setIsConfirmingReturnAll(false)
+    }
+  }, [open, loans.length])
+
   const displayedMechanic = useClosingSnapshot(open, mechanic)
   const displayedLoans = useClosingSnapshot(open, loans)
   const displayedLoading = useClosingSnapshot(open, isLoading)
@@ -57,59 +66,67 @@ export function ModalVerPrestamos({
   const displayedCanAdd = useClosingSnapshot(open, canAdd)
   const isBusy = Boolean(returningId) || isReturningAll
 
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      setIsConfirmingReturnAll(false)
+    }
+    onOpenChange(nextOpen)
+  }
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex h-[min(86vh,48rem)] w-[min(92vw,68rem)] max-w-none flex-col gap-4 overflow-hidden p-5 sm:max-w-none">
-        <DialogHeader>
-          <DialogTitle className="pr-8 text-lg">
-            Listado de herramientas prestadas de “{displayedMechanic?.nombre_completo}”
-          </DialogTitle>
-          <DialogDescription>
-            Consulta los préstamos activos y registra la devolución de una o
-            todas las unidades.
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={open} onOpenChange={handleOpenChange}>
+        <DialogContent className="flex h-[min(86vh,48rem)] w-[min(92vw,68rem)] max-w-none flex-col gap-4 overflow-hidden p-5 sm:max-w-none">
+          <DialogHeader>
+            <DialogTitle className="pr-8 text-lg">
+              Listado de herramientas prestadas de “{displayedMechanic?.nombre_completo}”
+            </DialogTitle>
+            <DialogDescription>
+              Consulta los préstamos activos y registra la devolución de una o
+              todas las unidades.
+            </DialogDescription>
+          </DialogHeader>
 
-        {displayedError ? (
-          <AlertError onClose={() => onDismissError?.()}>{displayedError}</AlertError>
-        ) : null}
+          {displayedError ? (
+            <AlertError onClose={() => onDismissError?.()}>{displayedError}</AlertError>
+          ) : null}
 
-        <div className="flex flex-col gap-3 border-y py-3 sm:flex-row sm:items-center sm:justify-between">
-          <span className="text-sm font-medium">
-            {displayedLoans.length}{" "}
-            {displayedLoans.length === 1
-              ? "herramienta activa"
-              : "herramientas activas"}
-          </span>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <Button
-              variant="success"
-              size="sm"
-              disabled={!displayedCanAdd || isBusy}
-              onClick={onAddTool}
-            >
-              <Plus data-icon="inline-start" />
-              Añadir herramienta
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              disabled={displayedLoans.length === 0 || isBusy}
-              onClick={onReturnAll}
-            >
-              <RotateCcw data-icon="inline-start" />
-              {isReturningAll ? "Devolviendo..." : "Devolver todas"}
-            </Button>
+          <div className="flex flex-col gap-3 border-y py-3 sm:flex-row sm:items-center sm:justify-between">
+            <span className="text-sm font-medium">
+              {displayedLoans.length}{" "}
+              {displayedLoans.length === 1
+                ? "herramienta activa"
+                : "herramientas activas"}
+            </span>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button
+                variant="success"
+                size="sm"
+                disabled={!displayedCanAdd || isBusy}
+                onClick={onAddTool}
+              >
+                <Plus data-icon="inline-start" />
+                Añadir herramienta
+              </Button>
+              <Button
+                variant="destructive"
+                size="sm"
+                disabled={displayedLoans.length === 0 || isBusy}
+                onClick={() => setIsConfirmingReturnAll(true)}
+              >
+                <RotateCcw data-icon="inline-start" />
+                {isReturningAll ? "Devolviendo..." : "Devolver todas"}
+              </Button>
+            </div>
           </div>
-        </div>
 
-        {displayedLoading ? (
-          <div className="py-10 text-center text-sm text-muted-foreground">
-            Cargando préstamos...
-          </div>
-        ) : displayedLoans.length > 0 ? (
-          <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
-            {displayedLoans.map((loan) => (
+          {displayedLoading ? (
+            <div className="py-10 text-center text-sm text-muted-foreground">
+              Cargando préstamos...
+            </div>
+          ) : displayedLoans.length > 0 ? (
+            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
+              {displayedLoans.map((loan) => (
                 <div
                   key={loan.id}
                   className="flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center"
@@ -143,24 +160,76 @@ export function ModalVerPrestamos({
                     {returningId === loan.id ? "Devolviendo..." : "Devolver"}
                   </Button>
                 </div>
-            ))}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-10 text-center">
-            <PackageOpen className="mb-3 size-9 text-muted-foreground" />
-            <p className="font-medium">No hay préstamos activos</p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Todas las unidades de este mecánico fueron devueltas.
-            </p>
-          </div>
-        )}
+              ))}
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-10 text-center">
+              <PackageOpen className="mb-3 size-9 text-muted-foreground" />
+              <p className="font-medium">No hay préstamos activos</p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Todas las unidades de este mecánico fueron devueltas.
+              </p>
+            </div>
+          )}
 
-        <DialogFooter className="mt-auto">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cerrar
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+          <DialogFooter className="mt-auto">
+            <Button variant="outline" onClick={() => handleOpenChange(false)}>
+              Cerrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de confirmación para Devolver Todas */}
+      <Dialog
+        open={isConfirmingReturnAll}
+        onOpenChange={(nextOpen) => {
+          if (isReturningAll) return
+          setIsConfirmingReturnAll(nextOpen)
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>¿Devolver todas las herramientas?</DialogTitle>
+            <DialogDescription>
+              Se registrará la devolución de las{" "}
+              <span className="font-semibold text-foreground">
+                {displayedLoans.length}{" "}
+                {displayedLoans.length === 1
+                  ? "herramienta prestada"
+                  : "herramientas prestadas"}
+              </span>{" "}
+              de{" "}
+              <span className="font-semibold text-foreground">
+                “{displayedMechanic?.nombre_completo}”
+              </span>
+              . Todas las unidades volverán a estar disponibles inmediatamente en el inventario.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter className="mt-4">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isReturningAll}
+              onClick={() => setIsConfirmingReturnAll(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={isReturningAll}
+              onClick={() => {
+                onReturnAll()
+              }}
+            >
+              <RotateCcw data-icon="inline-start" />
+              {isReturningAll ? "Devolviendo..." : "Devolver todas"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   )
 }

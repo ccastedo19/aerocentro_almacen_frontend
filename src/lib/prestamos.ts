@@ -132,7 +132,7 @@ function esEtiquetaVacia(valor?: string | null) {
   return /^sin\s+(marca|color)$/i.test(nombre)
 }
 
-export function marcaUnidad(unidad?: UnidadPrestamo | null) {
+export function marcaUnidad(unidad?: Pick<UnidadFiltrable, "marca"> | null) {
   const nombre = unidad?.marca?.nombre?.trim() ?? ""
 
   return esEtiquetaVacia(nombre) ? null : nombre
@@ -181,17 +181,95 @@ export function compararPorBusquedaCorta(nombreA: string, nombreB: string, query
   return a.localeCompare(b, "es")
 }
 
+export type FiltrosUnidadPrestamo = {
+  color1: string
+  color2: string
+  color3: string
+  marca: string
+  tamano: string
+  ubicacion: string
+}
+
+export const FILTROS_UNIDAD_VACIOS: FiltrosUnidadPrestamo = {
+  color1: "",
+  color2: "",
+  color3: "",
+  marca: "",
+  tamano: "",
+  ubicacion: "",
+}
+
+type UnidadFiltrable = {
+  color_primario?: ColorUnidad | null
+  color_secundario?: ColorUnidad | null
+  tamano?: string | null
+  marca?: RelacionNombre | null
+  ubicacion?: RelacionNombre | null
+}
+
+function coincideTexto(valor: string | null | undefined, query: string) {
+  const q = query.trim().toLocaleLowerCase()
+
+  if (!q) return true
+
+  return (valor ?? "").trim().toLocaleLowerCase().includes(q)
+}
+
+function etiquetaColorFiltrable(color: ColorUnidad | null | undefined) {
+  return color ? etiquetaColorUnidad(color) : ""
+}
+
+export function unidadCoincideFiltros(
+  unidad: UnidadFiltrable | null | undefined,
+  filtros: FiltrosUnidadPrestamo,
+) {
+  const color1 = etiquetaColorFiltrable(unidad?.color_primario)
+  const color2 = etiquetaColorFiltrable(unidad?.color_secundario)
+  const colores = [color1, color2].filter(Boolean)
+
+  if (filtros.color1.trim() && !colores.some((c) => coincideTexto(c, filtros.color1))) {
+    return false
+  }
+  if (filtros.color2.trim() && !colores.some((c) => coincideTexto(c, filtros.color2))) {
+    return false
+  }
+  if (filtros.color3.trim() && !colores.some((c) => coincideTexto(c, filtros.color3))) {
+    return false
+  }
+  if (!coincideTexto(marcaUnidad(unidad as UnidadPrestamo), filtros.marca)) {
+    return false
+  }
+  if (!coincideTexto(unidad?.tamano, filtros.tamano)) return false
+  if (!coincideTexto(unidad?.ubicacion?.nombre, filtros.ubicacion)) return false
+
+  return true
+}
+
+export function opcionesFiltroUnicas(valores: (string | null | undefined)[]) {
+  return [...new Set(
+    valores
+      .map((valor) => valor?.trim() ?? "")
+      .filter((valor) => valor && !esEtiquetaVacia(valor)),
+  )].sort((a, b) => a.localeCompare(b, "es"))
+}
+
+export function filtrosUnidadVacios(filtros: FiltrosUnidadPrestamo) {
+  return Object.values(filtros).every((valor) => !valor.trim())
+}
+
 export function filtrarUnidadesPorBusqueda<T extends UnidadPrestamo>(
   unidades: T[],
   search: string,
+  filtros: FiltrosUnidadPrestamo = FILTROS_UNIDAD_VACIOS,
 ) {
   const query = search.trim().toLocaleLowerCase()
 
-  if (!query) return unidades
+  if (!query && filtrosUnidadVacios(filtros)) return unidades
 
   return unidades
-    .filter((unidad) => textoBusquedaUnidad(unidad).includes(query))
-    .sort((a, b) => compararPorBusquedaCorta(nombreUnidad(a), nombreUnidad(b), query))
+    .filter((unidad) => (query ? textoBusquedaUnidad(unidad).includes(query) : true))
+    .filter((unidad) => unidadCoincideFiltros(unidad, filtros))
+    .sort((a, b) => (query ? compararPorBusquedaCorta(nombreUnidad(a), nombreUnidad(b), query) : 0))
 }
 
 export function mapDetalleEnUso(detalle: DetallePrestamoActivo): PrestamoEnUso {
@@ -315,6 +393,12 @@ export async function devolverUnidad(detalleId: string) {
 
 export async function devolverTodasDeMecanico(mecanicoId: string) {
   await api(`/api/prestamos/mecanicos/${mecanicoId}/devolver-todas`, {
+    method: "POST",
+  })
+}
+
+export async function devolverTodasAbsoluto() {
+  await api("/api/prestamos/devolver-todas-absoluto", {
     method: "POST",
   })
 }
