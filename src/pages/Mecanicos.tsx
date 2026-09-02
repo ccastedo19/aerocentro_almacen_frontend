@@ -52,6 +52,7 @@ import {
   etiquetaEstadoMecanico,
   getInicialesMecanico,
   listarMecanicos,
+  optimizarImagenMecanico,
   MECANICO_ESTADO_ACTIVO,
   MECANICO_ESTADO_FUERA_DE_SERVICIO,
   type Mecanico,
@@ -164,9 +165,9 @@ export const Mecanicos = () => {
                 <Avatar className="size-9 overflow-hidden rounded-lg after:rounded-lg">
                   {mecanico.imagen ? (
                     <AvatarImage
-                      src={mecanico.imagen}
+                      src={optimizarImagenMecanico(mecanico.imagen, 200, 200)}
                       alt={mecanico.nombre_completo}
-                      className="rounded-lg"
+                      className="rounded-lg object-cover"
                     />
                   ) : null}
                   <AvatarFallback className="rounded-lg text-xs">
@@ -471,7 +472,7 @@ export const Mecanicos = () => {
           </DialogTitle>
           {imagePreviewItem?.imagen ? (
             <img
-              src={imagePreviewItem.imagen}
+              src={optimizarImagenMecanico(imagePreviewItem.imagen, 1200, 1200)}
               alt={`Foto ampliada de ${imagePreviewItem.nombre_completo}`}
               className="max-h-[80vh] w-full rounded-lg object-contain"
             />

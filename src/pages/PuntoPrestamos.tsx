@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Eye, PackageSearch, Plus, Search, Wrench } from "lucide-react"
+import { Eye, PackageSearch, Plus, RotateCcw, Search, Wrench } from "lucide-react"
 
 import { ModalAgregarPrestamo } from "@/components/modal/ModalAgregarPrestamo"
 import { ModalBuscarHerramientaGeneral } from "@/components/modal/ModalBuscarHerramientaGeneral"
@@ -10,19 +10,27 @@ import { PagePreloader } from "@/components/ui/page-preloader"
 import { Button } from "@/components/ui/button"
 import {
   Card,
-  CardAction,
   CardContent,
   CardDescription,
   CardFooter,
-  CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { ApiError } from "@/lib/api"
 import { listarCombinadasActivas, type Combinada } from "@/lib/combinadas"
-import { getInicialesMecanico } from "@/lib/mecanicos"
+import { getInicialesMecanico, optimizarImagenMecanico } from "@/lib/mecanicos"
+import { toastExito } from "@/lib/toast"
 import {
   crearPrestamo,
+  devolverTodasAbsoluto,
   devolverTodasDeMecanico,
   devolverUnidad,
   estiloTarjetaMecanico,
@@ -62,6 +70,8 @@ export const PuntoPrestamos = () => {
   const [viewError, setViewError] = useState("")
   const [returningId, setReturningId] = useState<string | null>(null)
   const [isReturningAll, setIsReturningAll] = useState(false)
+  const [isConfirmingReturnAllGlobal, setIsConfirmingReturnAllGlobal] = useState(false)
+  const [isReturningAllGlobal, setIsReturningAllGlobal] = useState(false)
 
   const [addMechanicId, setAddMechanicId] = useState<string | null>(null)
   const [availableUnits, setAvailableUnits] = useState<UnidadPrestamo[]>([])
@@ -110,6 +120,11 @@ export const PuntoPrestamos = () => {
         .includes(query),
     )
   }, [mecanicos, search])
+
+  const totalPrestamosActivos = useMemo(
+    () => mecanicos.reduce((acc, m) => acc + Number(m.prestamos_activos ?? 0), 0),
+    [mecanicos],
+  )
 
   const viewMechanic = mecanicos.find((mecanico) => mecanico.id === viewMechanicId) ?? null
   const addMechanic = mecanicos.find((mecanico) => mecanico.id === addMechanicId) ?? null
@@ -230,8 +245,8 @@ export const PuntoPrestamos = () => {
       setAddError(
         error instanceof ApiError
           ? error.errors.unidades_ids?.[0]
-            || error.errors.mecanico_id?.[0]
-            || error.message
+          || error.errors.mecanico_id?.[0]
+          || error.message
           : "No se pudo registrar el préstamo.",
       )
     } finally {
@@ -282,7 +297,10 @@ export const PuntoPrestamos = () => {
 
     try {
       await devolverTodasDeMecanico(viewMechanicId)
+      setViewMechanicId(null)
+      setViewLoans([])
       await refreshAfterChange()
+      toastExito("Todas las herramientas del mecánico han sido devueltas correctamente.")
     } catch (error) {
       setViewError(
         error instanceof ApiError
@@ -291,6 +309,26 @@ export const PuntoPrestamos = () => {
       )
     } finally {
       setIsReturningAll(false)
+    }
+  }
+
+  const handleReturnAllGlobal = async () => {
+    setIsReturningAllGlobal(true)
+    setPageError("")
+
+    try {
+      await devolverTodasAbsoluto()
+      setIsConfirmingReturnAllGlobal(false)
+      await refreshAfterChange()
+      toastExito("Todas las herramientas prestadas han sido devueltas correctamente.")
+    } catch (error) {
+      setPageError(
+        error instanceof ApiError
+          ? error.message
+          : "No se pudieron devolver las herramientas.",
+      )
+    } finally {
+      setIsReturningAllGlobal(false)
     }
   }
 
@@ -313,23 +351,32 @@ export const PuntoPrestamos = () => {
         {pageError ? (
           <AlertError onClose={() => setPageError("")}>{pageError}</AlertError>
         ) : null}
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-col gap-3 min-w-0 sm:flex-row sm:items-center">
+            <div className="relative w-full sm:w-[25rem] lg:w-[25rem] shrink-0">
+              <label htmlFor="mechanic-search" className="sr-only">
+                Buscar mecánico
+              </label>
+              <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                id="mechanic-search"
+                className="h-10 w-full pl-9 pr-4 text-base"
+                placeholder="Buscar mecánico por nombre, apodo o cargo..."
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+            </div>
 
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative w-full max-w-md">
-            <label htmlFor="mechanic-search" className="sr-only">
-              Buscar mecánico
-            </label>
-            <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              id="mechanic-search"
-              className="h-9 pl-9"
-              placeholder="Buscar mecánico por nombre..."
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-            />
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 text-xs font-medium self-start sm:self-center shrink-0">
+              <span className="size-1.5 rounded-full bg-emerald-500" />
+              {totalPrestamosActivos}{" "}
+              {totalPrestamosActivos === 1
+                ? "Préstamo en Total"
+                : "Préstamos en Total"}
+            </span>
           </div>
 
-          <div className="flex flex-col gap-2 sm:flex-row">
+          <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap shrink-0">
             <Button
               variant="info"
               size="lg"
@@ -337,17 +384,28 @@ export const PuntoPrestamos = () => {
               onClick={() => void openUsedTools()}
             >
               <Wrench data-icon="inline-start" />
-              Buscar herramienta en uso
+              Buscar en uso
             </Button>
+
             <Button
               size="lg"
-              className="sm:shrink-0 outline"
+              variant="outline"
+              className="sm:shrink-0"
               onClick={() => void openGeneralTools()}
             >
               <PackageSearch data-icon="inline-start" />
-              Buscar herramienta en general
+              Buscar todas
+            </Button>
 
-              
+            <Button
+              size="lg"
+              variant="destructive"
+              className="sm:shrink-0"
+              disabled={totalPrestamosActivos === 0 || isReturningAllGlobal}
+              onClick={() => setIsConfirmingReturnAllGlobal(true)}
+            >
+              <RotateCcw data-icon="inline-start" />
+              {isReturningAllGlobal ? "Devolviendo..." : "Devolver todas"}
             </Button>
           </div>
         </div>
@@ -364,41 +422,45 @@ export const PuntoPrestamos = () => {
                   key={mechanic.id}
                   className={`h-full border-t-4 transition-shadow hover:shadow-md ${estilo.accent}`}
                 >
-                  <CardHeader>
-                    {mechanic.imagen ? (
-                      <img
-                        src={mechanic.imagen}
-                        alt=""
-                        className="size-11 rounded-xl object-cover"
-                      />
-                    ) : (
-                      <div
-                        className={`flex size-11 items-center justify-center rounded-xl text-sm font-semibold ${estilo.badge}`}
-                      >
-                        {getInicialesMecanico(mechanic)}
-                      </div>
-                    )}
-                    <CardAction>
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-medium">
+                  <CardContent className="flex min-h-[4.75rem] items-center justify-between gap-3">
+                    <div className="min-w-0 flex-1 space-y-3">
+                      <CardTitle className="line-clamp-1">
+                        {mechanic.nombre_completo}
+                      </CardTitle>
+
+                      <p className="h-5 truncate text-sm font-medium">
+                        {mechanic.apodo ? `“${mechanic.apodo}”` : "\u00a0"}
+                      </p>
+
+                      <CardDescription className="line-clamp-1">
+                        {mechanic.cargo}
+                      </CardDescription>
+                    </div>
+                    <div className="flex-col">
+                      <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-medium mb-3 relative right-2 ">
                         <span className="size-1.5 rounded-full bg-emerald-500" />
                         {activeLoans}{" "}
                         {activeLoans === 1
                           ? "Préstamo"
                           : "Préstamos"}
                       </span>
-                    </CardAction>
-                  </CardHeader>
 
-                  <CardContent className="min-h-[4.75rem] space-y-1">
-                    <CardTitle className="line-clamp-1">
-                      {mechanic.nombre_completo}
-                    </CardTitle>
-                    <p className="h-5 truncate text-sm font-medium">
-                      {mechanic.apodo ? `“${mechanic.apodo}”` : "\u00a0"}
-                    </p>
-                    <CardDescription className="line-clamp-1">
-                      {mechanic.cargo}
-                    </CardDescription>
+                      {mechanic.imagen ? (
+                        <img
+                          src={optimizarImagenMecanico(mechanic.imagen, 400, 400)}
+                          alt={mechanic.nombre_completo}
+                          className="size-20 shrink-0 rounded-xl object-cover shadow-xs border border-border/40"
+                          loading="eager"
+                          decoding="async"
+                        />
+                      ) : (
+                        <div
+                          className={`flex size-20 shrink-0 items-center justify-center rounded-xl text-sm font-semibold ${estilo.badge}`}
+                        >
+                          {getInicialesMecanico(mechanic)}
+                        </div>
+                      )}
+                    </div>
                   </CardContent>
 
                   <CardFooter className="mt-auto grid grid-cols-2 gap-2">
@@ -509,6 +571,51 @@ export const PuntoPrestamos = () => {
           void handleAddLoan(unidadIds)
         }}
       />
+
+      {/* Modal de confirmación para Devolver Todas en general */}
+      <Dialog
+        open={isConfirmingReturnAllGlobal}
+        onOpenChange={(open) => {
+          if (isReturningAllGlobal) return
+          setIsConfirmingReturnAllGlobal(open)
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>¿Devolver TODAS las herramientas prestadas?</DialogTitle>
+            <DialogDescription>
+              Se registrará la devolución masiva de las{" "}
+              <span className="font-semibold text-foreground">
+                {totalPrestamosActivos}{" "}
+                {totalPrestamosActivos === 1
+                  ? "herramienta activa"
+                  : "herramientas activas"}
+              </span>{" "}
+              de todos los mecánicos. Todas las unidades volverán a estar disponibles inmediatamente en el inventario del almacén.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter className="mt-4">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isReturningAllGlobal}
+              onClick={() => setIsConfirmingReturnAllGlobal(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={isReturningAllGlobal}
+              onClick={() => void handleReturnAllGlobal()}
+            >
+              <RotateCcw data-icon="inline-start" />
+              {isReturningAllGlobal ? "Devolviendo todo..." : "Devolver todas"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

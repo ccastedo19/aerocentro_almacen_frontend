@@ -291,6 +291,7 @@ export function ModalHerramienta({
               <UnidadesMiniTabla
                 filas={unidades.map((unidad) => ({
                   id: unidad.key,
+                  herramienta: nombre.trim() || "Nueva herramienta",
                   marca: nombreMarca(unidad.marca_id),
                   ubicacion: nombreUbicacion(unidad.ubicacion_id),
                   colores: etiquetaColoresUnidad(
@@ -300,6 +301,7 @@ export function ModalHerramienta({
                   tamano: unidad.tamano,
                   calibracion: unidad.proxima_calibracion || unidad.fecha_calibracion,
                   observaciones: unidad.observaciones,
+                  editing: editingUnidadKey === unidad.key,
                 }))}
                 emptyMessage="Aún no hay unidades. Agrégalas antes de guardar, o déjalo vacío y añádelas después."
                 onEdit={(key) => {

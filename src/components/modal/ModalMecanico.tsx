@@ -14,6 +14,7 @@ import { Input } from "@/components/ui/input"
 import {
   COLORES_MECANICO,
   getInicialesMecanico,
+  optimizarImagenMecanico,
   type ColorMecanico,
   type Mecanico,
   type MecanicoFormValues,
@@ -256,9 +257,9 @@ export function ModalMecanico({
               <Avatar className="size-16 overflow-hidden rounded-xl after:rounded-xl">
                 {previewUrl ? (
                   <AvatarImage
-                    src={previewUrl}
+                    src={optimizarImagenMecanico(previewUrl, 300, 300)}
                     alt="Foto del mecánico"
-                    className="rounded-xl"
+                    className="rounded-xl object-cover"
                   />
                 ) : null}
                 <AvatarFallback className="rounded-xl text-base">

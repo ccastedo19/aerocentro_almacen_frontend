@@ -86,6 +86,18 @@ async function buildAutoSections() {
     getProjectStats(),
   ])
 
+  const pages = await listFiles('src/pages', { extensions: ['.tsx'] }).then(
+    (files) => files.map((file) => `- \`${file}\``),
+  )
+  const modalComponents = await listFiles('src/components/modal', { extensions: ['.tsx'] }).then(
+    (files) => files.map((file) => `- \`${file}\``),
+  )
+  const catalogoComponents = await listFiles('src/components/catalogo', { extensions: ['.tsx'] }).then(
+    (files) => files.map((file) => `- \`${file}\``),
+  )
+  const historialComponents = await listFiles('src/components/historial', { extensions: ['.tsx'] }).then(
+    (files) => files.map((file) => `- \`${file}\``),
+  )
   const uiComponents = await listFiles('src/components/ui', {
     extensions: ['.tsx'],
     prefix: '- `',
@@ -94,7 +106,7 @@ async function buildAutoSections() {
     extensions: ['.tsx'],
   }).then((files) =>
     files
-      .filter((file) => !file.includes('/ui/'))
+      .filter((file) => !file.includes('/ui/') && !file.includes('/modal/') && !file.includes('/catalogo/') && !file.includes('/historial/'))
       .map((file) => `- \`${file}\``),
   )
   const hooks = await listFiles('src/hooks', { extensions: ['.ts', '.tsx'] }).then(
@@ -130,14 +142,26 @@ async function buildAutoSections() {
       '### Aliases',
       formatAliases(componentsJson),
       '',
-      '### Componentes UI instalados',
+      '### Componentes UI instalados (shadcn)',
       uiComponents.length
         ? uiComponents.map((file) => `${file}\``).join('\n')
         : '- _(ninguno)_',
     ].join('\n'),
     structure: [
-      '### Componentes de aplicación',
+      '### Vistas / Páginas (`src/pages`)',
+      pages.length ? pages.join('\n') : '- _(ninguno)_',
+      '',
+      '### Componentes de Aplicación y Layout',
       appComponents.length ? appComponents.join('\n') : '- _(ninguno)_',
+      '',
+      '### Modales de Negocio (`src/components/modal`)',
+      modalComponents.length ? modalComponents.join('\n') : '- _(ninguno)_',
+      '',
+      '### Componentes de Catálogo (`src/components/catalogo`)',
+      catalogoComponents.length ? catalogoComponents.join('\n') : '- _(ninguno)_',
+      '',
+      '### Componentes de Historial (`src/components/historial`)',
+      historialComponents.length ? historialComponents.join('\n') : '- _(ninguno)_',
       '',
       '### Hooks',
       hooks.length ? hooks.join('\n') : '- _(ninguno)_',
