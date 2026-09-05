@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Eye, PackageSearch, Plus, RotateCcw, Search, Wrench } from "lucide-react"
+import { Eye, PackageSearch, Plus, RotateCcw, Search } from "lucide-react"
 
 import { ModalAgregarPrestamo } from "@/components/modal/ModalAgregarPrestamo"
 import { ModalBuscarHerramientaGeneral } from "@/components/modal/ModalBuscarHerramientaGeneral"
-import { ModalBuscarHerramientaEnUso } from "@/components/modal/ModalBuscarHerramientaEnUso"
 import { ModalVerPrestamos } from "@/components/modal/ModalVerPrestamos"
 import { AlertError } from "@/components/ui/alert-error"
 import { PagePreloader } from "@/components/ui/page-preloader"
@@ -30,10 +29,10 @@ import { getInicialesMecanico, optimizarImagenMecanico } from "@/lib/mecanicos"
 import { toastExito } from "@/lib/toast"
 import {
   crearPrestamo,
+  devolverMultiplesDetalles,
   devolverTodasAbsoluto,
-  devolverTodasDeMecanico,
-  devolverUnidad,
   estiloTarjetaMecanico,
+  intercambiarPrestamos,
   listarHerramientasGeneral,
   listarHerramientasEnUso,
   listarPrestamosDeMecanico,
@@ -54,11 +53,6 @@ export const PuntoPrestamos = () => {
   const [isLoading, setIsLoading] = useState(true)
   const [pageError, setPageError] = useState("")
 
-  const [isUsedToolsOpen, setIsUsedToolsOpen] = useState(false)
-  const [usedTools, setUsedTools] = useState<PrestamoEnUso[]>([])
-  const [isLoadingUsed, setIsLoadingUsed] = useState(false)
-  const [usedError, setUsedError] = useState("")
-
   const [isGeneralToolsOpen, setIsGeneralToolsOpen] = useState(false)
   const [generalTools, setGeneralTools] = useState<HerramientaGeneral[]>([])
   const [isLoadingGeneral, setIsLoadingGeneral] = useState(false)
@@ -68,13 +62,13 @@ export const PuntoPrestamos = () => {
   const [viewLoans, setViewLoans] = useState<DetallePrestamoActivo[]>([])
   const [isLoadingView, setIsLoadingView] = useState(false)
   const [viewError, setViewError] = useState("")
-  const [returningId, setReturningId] = useState<string | null>(null)
-  const [isReturningAll, setIsReturningAll] = useState(false)
+  const [isSavingReturns, setIsSavingReturns] = useState(false)
   const [isConfirmingReturnAllGlobal, setIsConfirmingReturnAllGlobal] = useState(false)
   const [isReturningAllGlobal, setIsReturningAllGlobal] = useState(false)
 
   const [addMechanicId, setAddMechanicId] = useState<string | null>(null)
   const [availableUnits, setAvailableUnits] = useState<UnidadPrestamo[]>([])
+  const [loansInUse, setLoansInUse] = useState<PrestamoEnUso[]>([])
   const [combinadas, setCombinadas] = useState<Combinada[]>([])
   const [isLoadingUnits, setIsLoadingUnits] = useState(false)
   const [isSavingLoan, setIsSavingLoan] = useState(false)
@@ -102,6 +96,24 @@ export const PuntoPrestamos = () => {
       })
       .finally(() => {
         if (!cancelled) setIsLoading(false)
+      })
+
+    // Precarga en segundo plano para que la apertura de modales sea instantánea
+    void Promise.all([
+      listarUnidadesDisponibles(),
+      listarCombinadasActivas(),
+      listarHerramientasEnUso(),
+      listarHerramientasGeneral(),
+    ])
+      .then(([unidades, combinadasActivas, enUso, general]) => {
+        if (cancelled) return
+        setAvailableUnits(unidades)
+        setCombinadas(combinadasActivas)
+        setLoansInUse(enUso)
+        setGeneralTools(general)
+      })
+      .catch(() => {
+        // Si falla la precarga silenciosa, los modales la solicitarán al abrir
       })
 
     return () => {
@@ -154,51 +166,39 @@ export const PuntoPrestamos = () => {
   const openAddLoan = async (mecanicoId: string) => {
     setAddMechanicId(mecanicoId)
     setAddError("")
-    setIsLoadingUnits(true)
+
+    // Si no tenemos unidades precargadas, mostramos el estado de carga
+    if (availableUnits.length === 0 && loansInUse.length === 0) {
+      setIsLoadingUnits(true)
+    }
 
     try {
-      const [unidades, combinadasActivas] = await Promise.all([
+      const [unidades, combinadasActivas, enUso] = await Promise.all([
         listarUnidadesDisponibles(),
         listarCombinadasActivas(),
+        listarHerramientasEnUso(),
       ])
       setAvailableUnits(unidades)
       setCombinadas(combinadasActivas)
+      setLoansInUse(enUso.filter((l) => l.mechanicId !== mecanicoId))
     } catch (error) {
       setAddError(
         error instanceof ApiError
           ? error.message
           : "No se pudieron cargar las unidades disponibles.",
       )
-      setAvailableUnits([])
-      setCombinadas([])
     } finally {
       setIsLoadingUnits(false)
     }
   }
 
-  const openUsedTools = async () => {
-    setIsUsedToolsOpen(true)
-    setIsLoadingUsed(true)
-    setUsedError("")
-
-    try {
-      setUsedTools(await listarHerramientasEnUso())
-    } catch (error) {
-      setUsedError(
-        error instanceof ApiError
-          ? error.message
-          : "No se pudieron cargar las herramientas en uso.",
-      )
-      setUsedTools([])
-    } finally {
-      setIsLoadingUsed(false)
-    }
-  }
-
   const openGeneralTools = async () => {
     setIsGeneralToolsOpen(true)
-    setIsLoadingGeneral(true)
     setGeneralError("")
+
+    if (generalTools.length === 0) {
+      setIsLoadingGeneral(true)
+    }
 
     try {
       setGeneralTools(await listarHerramientasGeneral())
@@ -208,26 +208,32 @@ export const PuntoPrestamos = () => {
           ? error.message
           : "No se pudieron cargar las herramientas.",
       )
-      setGeneralTools([])
     } finally {
       setIsLoadingGeneral(false)
     }
   }
 
   const refreshAfterChange = async () => {
-    await loadMecanicos()
+    const promises: Promise<unknown>[] = [
+      loadMecanicos(),
+      listarUnidadesDisponibles().then((u) => setAvailableUnits(u)),
+      listarCombinadasActivas().then((c) => setCombinadas(c)),
+      listarHerramientasEnUso().then((enUso) => {
+        setLoansInUse(enUso)
+      }),
+    ]
 
     if (viewMechanicId) {
-      await loadViewLoans(viewMechanicId)
-    }
-
-    if (isUsedToolsOpen) {
-      setUsedTools(await listarHerramientasEnUso())
+      promises.push(loadViewLoans(viewMechanicId))
     }
 
     if (isGeneralToolsOpen) {
-      setGeneralTools(await listarHerramientasGeneral())
+      promises.push(
+        listarHerramientasGeneral().then((tools) => setGeneralTools(tools)),
+      )
     }
+
+    await Promise.all(promises)
   }
 
   const handleAddLoan = async (unidadIds: string[]) => {
@@ -239,7 +245,6 @@ export const PuntoPrestamos = () => {
     try {
       await crearPrestamo(addMechanicId, unidadIds)
       setAddMechanicId(null)
-      setAvailableUnits([])
       await refreshAfterChange()
     } catch (error) {
       setAddError(
@@ -254,63 +259,69 @@ export const PuntoPrestamos = () => {
     }
   }
 
-  const handleReturnTool = async (
-    detalleId: string,
-    origen: "view" | "used" | "general" = "view",
-  ) => {
-    setReturningId(detalleId)
+  const handleExchangeLoan = async (unidadId: string) => {
+    if (!addMechanicId) return
 
-    if (origen === "used") {
-      setUsedError("")
-    } else if (origen === "general") {
+    setAddError("")
+    try {
+      await intercambiarPrestamos(addMechanicId, [unidadId])
+      setAddMechanicId(null)
+      await refreshAfterChange()
+      toastExito("Herramienta intercambiada correctamente.")
+    } catch (error) {
+      const message =
+        error instanceof ApiError
+          ? error.errors.unidades_ids?.[0]
+            || error.errors.mecanico_destino_id?.[0]
+            || error.message
+          : "No se pudo realizar el intercambio de préstamos."
+      setAddError(message)
+      throw error
+    }
+  }
+
+  const handleSaveReturns = async (
+    detalleIds: string[],
+    origen: "view" | "general" = "view",
+  ) => {
+    if (detalleIds.length === 0) return
+
+    setIsSavingReturns(true)
+
+    if (origen === "general") {
       setGeneralError("")
     } else {
       setViewError("")
     }
 
     try {
-      await devolverUnidad(detalleId)
+      await devolverMultiplesDetalles(detalleIds)
       await refreshAfterChange()
+      toastExito(
+        detalleIds.length === 1
+          ? "La herramienta ha sido devuelta correctamente."
+          : `Se han devuelto ${detalleIds.length} herramientas correctamente.`,
+      )
     } catch (error) {
       const message =
         error instanceof ApiError
-          ? error.errors.detalle?.[0] || error.message
-          : "No se pudo devolver la unidad."
+          ? error.errors.detalles_ids?.[0]
+            || error.errors.detalle?.[0]
+            || error.message
+          : "No se pudieron registrar las devoluciones."
 
-      if (origen === "used") {
-        setUsedError(message)
-      } else if (origen === "general") {
+      if (origen === "general") {
         setGeneralError(message)
       } else {
         setViewError(message)
       }
+      throw error
     } finally {
-      setReturningId(null)
+      setIsSavingReturns(false)
     }
   }
 
-  const handleReturnAll = async () => {
-    if (!viewMechanicId) return
 
-    setIsReturningAll(true)
-    setViewError("")
-
-    try {
-      await devolverTodasDeMecanico(viewMechanicId)
-      setViewMechanicId(null)
-      setViewLoans([])
-      await refreshAfterChange()
-      toastExito("Todas las herramientas del mecánico han sido devueltas correctamente.")
-    } catch (error) {
-      setViewError(
-        error instanceof ApiError
-          ? error.errors.mecanico?.[0] || error.message
-          : "No se pudieron devolver las unidades.",
-      )
-    } finally {
-      setIsReturningAll(false)
-    }
-  }
 
   const handleReturnAllGlobal = async () => {
     setIsReturningAllGlobal(true)
@@ -378,23 +389,13 @@ export const PuntoPrestamos = () => {
 
           <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap shrink-0">
             <Button
-              variant="info"
-              size="lg"
-              className="sm:shrink-0"
-              onClick={() => void openUsedTools()}
-            >
-              <Wrench data-icon="inline-start" />
-              Buscar en uso
-            </Button>
-
-            <Button
               size="lg"
               variant="outline"
               className="sm:shrink-0"
               onClick={() => void openGeneralTools()}
             >
               <PackageSearch data-icon="inline-start" />
-              Buscar todas
+              Buscar Herramientas
             </Button>
 
             <Button
@@ -500,30 +501,20 @@ export const PuntoPrestamos = () => {
         )}
       </section>
 
-      <ModalBuscarHerramientaEnUso
-        open={isUsedToolsOpen}
-        usedTools={usedTools}
-        isLoading={isLoadingUsed}
-        returningId={returningId}
-        error={usedError}
-        onOpenChange={setIsUsedToolsOpen}
-        onDismissError={() => setUsedError("")}
-        onReturnTool={(detalleId) => {
-          void handleReturnTool(detalleId, "used")
-        }}
-      />
-
       <ModalBuscarHerramientaGeneral
         open={isGeneralToolsOpen}
         tools={generalTools}
         isLoading={isLoadingGeneral}
-        returningId={returningId}
+        isSavingReturns={isSavingReturns}
         error={generalError}
-        onOpenChange={setIsGeneralToolsOpen}
-        onDismissError={() => setGeneralError("")}
-        onReturnTool={(detalleId) => {
-          void handleReturnTool(detalleId, "general")
+        onOpenChange={(open) => {
+          setIsGeneralToolsOpen(open)
+          if (!open) {
+            setGeneralError("")
+          }
         }}
+        onDismissError={() => setGeneralError("")}
+        onSaveReturns={(detalleIds) => handleSaveReturns(detalleIds, "general")}
       />
 
       <ModalVerPrestamos
@@ -531,29 +522,27 @@ export const PuntoPrestamos = () => {
         mechanic={viewMechanic}
         loans={viewLoans}
         isLoading={isLoadingView}
-        returningId={returningId}
-        isReturningAll={isReturningAll}
+        isSavingReturns={isSavingReturns}
         error={viewError}
         canAdd={viewMechanic?.estado === MECANICO_ACTIVO}
         onDismissError={() => setViewError("")}
         onOpenChange={(open) => {
-          if (!open) setViewMechanicId(null)
+          if (!open) {
+            setViewMechanicId(null)
+            setViewError("")
+          }
         }}
         onAddTool={() => {
           if (viewMechanicId) void openAddLoan(viewMechanicId)
         }}
-        onReturnTool={(detalleId) => {
-          void handleReturnTool(detalleId)
-        }}
-        onReturnAll={() => {
-          void handleReturnAll()
-        }}
+        onSaveReturns={(detalleIds) => handleSaveReturns(detalleIds, "view")}
       />
 
       <ModalAgregarPrestamo
         open={addMechanicId !== null}
         mechanic={addMechanic}
         availableUnits={availableUnits}
+        loansInUse={loansInUse}
         combinadas={combinadas}
         isLoading={isLoadingUnits}
         isSubmitting={isSavingLoan}
@@ -562,14 +551,13 @@ export const PuntoPrestamos = () => {
           if (!open && isSavingLoan) return
           if (!open) {
             setAddMechanicId(null)
-            setAvailableUnits([])
-            setCombinadas([])
             setAddError("")
           }
         }}
         onSubmit={(unidadIds) => {
           void handleAddLoan(unidadIds)
         }}
+        onExchange={handleExchangeLoan}
       />
 
       {/* Modal de confirmación para Devolver Todas en general */}

@@ -67,8 +67,6 @@ export function ComboboxFiltro({
   const handleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
     if (event.key === "Escape") {
       setIsOpen(false)
-    } else if (event.key === "ArrowDown" && !isOpen && !disabled) {
-      setIsOpen(true)
     }
   }
 
@@ -85,11 +83,11 @@ export function ComboboxFiltro({
         disabled={disabled}
         autoComplete="off"
         onChange={(event) => {
-          onChange(event.target.value)
-          if (!disabled) setIsOpen(true)
-        }}
-        onFocus={() => {
-          if (!disabled) setIsOpen(true)
+          const nextVal = event.target.value
+          onChange(nextVal)
+          if (!nextVal.trim()) {
+            setIsOpen(false)
+          }
         }}
         onKeyDown={handleKeyDown}
       />
@@ -103,8 +101,8 @@ export function ComboboxFiltro({
             onClick={(event) => {
               event.stopPropagation()
               onChange("")
+              setIsOpen(false)
               inputRef.current?.focus()
-              setIsOpen(true)
             }}
             className="flex size-6 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
             title="Limpiar"

@@ -73,6 +73,7 @@ export type HerramientaGeneral = {
   unidad?: UnidadPrestamo | null
   detalleId?: string
   borrowedAt?: string
+  mechanicId?: string
   mechanicName?: string
   mechanicArea?: string
 }
@@ -385,6 +386,16 @@ export async function crearPrestamo(mecanicoId: string, unidadesIds: string[]) {
   })
 }
 
+export async function devolverMultiplesDetalles(detallesIds: string[]) {
+  if (detallesIds.length === 0) return
+  await api("/api/prestamos/detalles/devolver-multiples", {
+    method: "POST",
+    body: {
+      detalles_ids: detallesIds,
+    },
+  })
+}
+
 export async function devolverUnidad(detalleId: string) {
   await api(`/api/prestamos/detalles/${detalleId}/devolver`, {
     method: "POST",
@@ -400,5 +411,19 @@ export async function devolverTodasDeMecanico(mecanicoId: string) {
 export async function devolverTodasAbsoluto() {
   await api("/api/prestamos/devolver-todas-absoluto", {
     method: "POST",
+  })
+}
+
+export async function intercambiarPrestamos(
+  mecanicoDestinoId: string,
+  unidadesIds: string[],
+) {
+  if (unidadesIds.length === 0) return
+  await api("/api/prestamos/intercambiar", {
+    method: "POST",
+    body: {
+      mecanico_destino_id: mecanicoDestinoId,
+      unidades_ids: unidadesIds,
+    },
   })
 }

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react"
-import { RotateCcw, Search, UserRound, Wrench } from "lucide-react"
+import { Check, RotateCcw, Search, Undo2, UserRound, Wrench } from "lucide-react"
 
 import { AlertError } from "@/components/ui/alert-error"
 import { Button } from "@/components/ui/button"
@@ -20,31 +20,42 @@ type ModalBuscarHerramientaEnUsoProps = {
   open: boolean
   usedTools: PrestamoEnUso[]
   isLoading?: boolean
-  returningId?: string | null
+  isSavingReturns?: boolean
   error?: string
   onOpenChange: (open: boolean) => void
   onDismissError?: () => void
-  onReturnTool: (detalleId: string) => void
+  onSaveReturns: (detalleIds: string[]) => Promise<void>
 }
 
 export function ModalBuscarHerramientaEnUso({
   open,
   usedTools,
   isLoading = false,
-  returningId = null,
+  isSavingReturns = false,
   error = "",
   onOpenChange,
   onDismissError,
-  onReturnTool,
+  onSaveReturns,
 }: ModalBuscarHerramientaEnUsoProps) {
   const [search, setSearch] = useState("")
+  const [pendingReturnIds, setPendingReturnIds] = useState<string[]>([])
+
   const displayedTools = useClosingSnapshot(open, usedTools)
   const displayedLoading = useClosingSnapshot(open, isLoading)
   const displayedError = useClosingSnapshot(open, error)
 
   useEffect(() => {
-    if (open) setSearch("")
+    if (open) {
+      setSearch("")
+      setPendingReturnIds([])
+    }
   }, [open])
+
+  useEffect(() => {
+    setPendingReturnIds((prev) =>
+      prev.filter((id) => usedTools.some((tool) => tool.detalleId === id)),
+    )
+  }, [usedTools])
 
   const filteredTools = useMemo(() => {
     const query = search.trim().toLocaleLowerCase()
@@ -68,7 +79,27 @@ export function ModalBuscarHerramientaEnUso({
       .sort((a, b) => compararPorBusquedaCorta(a.nombre, b.nombre, query))
   }, [displayedTools, search, usedTools])
 
+  const handleToggleStage = (detalleId: string) => {
+    setPendingReturnIds((prev) =>
+      prev.includes(detalleId)
+        ? prev.filter((id) => id !== detalleId)
+        : [...prev, detalleId],
+    )
+  }
+
+  const handleSave = async () => {
+    if (pendingReturnIds.length === 0) return
+    try {
+      await onSaveReturns(pendingReturnIds)
+      setPendingReturnIds([])
+      closeModal()
+    } catch {
+      // Se preservan los IDs si falla
+    }
+  }
+
   const closeModal = () => {
+    setPendingReturnIds([])
     onOpenChange(false)
   }
 
@@ -90,8 +121,7 @@ export function ModalBuscarHerramientaEnUso({
             Buscar herramienta en uso
           </DialogTitle>
           <DialogDescription>
-            Consulta qué mecánico tiene una unidad prestada y regístrala como
-            devuelta.
+            Consulta qué mecánico tiene una unidad prestada y selecciona las que deseas registrar como devueltas.
           </DialogDescription>
         </DialogHeader>
 
@@ -126,51 +156,83 @@ export function ModalBuscarHerramientaEnUso({
           </div>
         ) : filteredTools.length > 0 ? (
           <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-1">
-            {filteredTools.map((item) => (
-              <div
-                key={item.detalleId}
-                className="flex flex-col gap-3 rounded-lg border p-3 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="flex min-w-0 items-center gap-3">
-                  <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
-                    <Wrench className="size-4 text-muted-foreground" />
-                  </div>
-                  <div className="min-w-0">
-                    <p className="truncate font-medium">{item.nombre}</p>
-                    <DetalleUnidadPrestamo
-                      unidad={item.unidad}
-                      className="text-xs"
-                    />
-                    {item.borrowedAt ? (
-                      <p className="text-xs text-muted-foreground">
-                        Prestada {formatBorrowedAt(item.borrowedAt)}
-                      </p>
-                    ) : null}
-                  </div>
-                </div>
+            {filteredTools.map((item) => {
+              const isPending = pendingReturnIds.includes(item.detalleId)
 
-                <div className="flex flex-col gap-2 sm:shrink-0 sm:flex-row sm:items-center">
-                  <div className="flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-2">
-                    <UserRound className="size-4 text-muted-foreground" />
-                    <div>
-                      <p className="text-xs text-muted-foreground">
-                        En préstamo con
-                      </p>
-                      <p className="text-sm font-medium">{item.mechanicName}</p>
+              return (
+                <div
+                  key={item.detalleId}
+                  className={`flex flex-col gap-3 rounded-lg border p-3 transition-colors sm:flex-row sm:items-center sm:justify-between ${
+                    isPending
+                      ? "border-amber-500/50 bg-amber-500/[0.07] dark:bg-amber-500/[0.12]"
+                      : "border-border"
+                  }`}
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-muted">
+                      <Wrench className="size-4 text-muted-foreground" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="truncate font-medium">{item.nombre}</p>
+                        {isPending ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-amber-500/20 px-2 py-0.5 text-xs font-medium text-amber-700 dark:text-amber-300">
+                            <RotateCcw className="size-3" />
+                            Marcada para devolver
+                          </span>
+                        ) : null}
+                      </div>
+                      <DetalleUnidadPrestamo
+                        unidad={item.unidad}
+                        className="text-xs"
+                      />
+                      {item.borrowedAt ? (
+                        <p className="text-xs text-muted-foreground">
+                          Prestada {formatBorrowedAt(item.borrowedAt)}
+                        </p>
+                      ) : null}
                     </div>
                   </div>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    disabled={Boolean(returningId)}
-                    onClick={() => onReturnTool(item.detalleId)}
-                  >
-                    <RotateCcw data-icon="inline-start" />
-                    {returningId === item.detalleId ? "Devolviendo..." : "Devolver"}
-                  </Button>
+
+                  <div className="flex flex-col gap-2 sm:shrink-0 sm:flex-row sm:items-center">
+                    <div className="flex items-center gap-2 rounded-lg bg-muted/60 px-3 py-2">
+                      <UserRound className="size-4 text-muted-foreground" />
+                      <div>
+                        <p className="text-xs text-muted-foreground">
+                          En préstamo con
+                        </p>
+                        <p className="text-sm font-medium">{item.mechanicName}</p>
+                      </div>
+                    </div>
+
+                    {isPending ? (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="border-amber-500/40 text-amber-700 hover:bg-amber-500/15 hover:text-amber-800 dark:border-amber-400/40 dark:text-amber-300 dark:hover:bg-amber-400/15"
+                        disabled={isSavingReturns}
+                        onClick={() => handleToggleStage(item.detalleId)}
+                      >
+                        <Undo2 data-icon="inline-start" className="size-3.5" />
+                        Cancelar Devolución
+                      </Button>
+                    ) : (
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="sm"
+                        disabled={isSavingReturns}
+                        onClick={() => handleToggleStage(item.detalleId)}
+                      >
+                        <RotateCcw data-icon="inline-start" className="size-3.5" />
+                        Devolver
+                      </Button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         ) : (
           <div className="flex flex-col items-center justify-center py-10 text-center">
@@ -188,10 +250,48 @@ export function ModalBuscarHerramientaEnUso({
           </div>
         )}
 
-        <DialogFooter className="mt-auto">
-          <Button variant="outline" onClick={closeModal}>
-            Cerrar
-          </Button>
+        <DialogFooter className="mt-auto flex flex-col gap-3 border-t pt-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            {pendingReturnIds.length > 0 ? (
+              <div className="flex items-center gap-2">
+                <span className="flex size-2 rounded-full bg-amber-500 animate-pulse" />
+                <span className="font-medium text-foreground">
+                  {pendingReturnIds.length}{" "}
+                  {pendingReturnIds.length === 1
+                    ? "devolución pendiente por guardar"
+                    : "devoluciones pendientes por guardar"}
+                </span>
+              </div>
+            ) : (
+              <span>
+                Presiona &ldquo;Devolver&rdquo; en las herramientas que quieras devolver y luego guarda.
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              disabled={isSavingReturns}
+              onClick={closeModal}
+            >
+              Cerrar
+            </Button>
+            <Button
+              type="button"
+              variant="success"
+              disabled={pendingReturnIds.length === 0 || isSavingReturns}
+              onClick={() => void handleSave()}
+            >
+              <Check data-icon="inline-start" className="size-4" />
+              {isSavingReturns
+                ? "Guardando devoluciones..."
+                : pendingReturnIds.length > 0
+                  ? `Guardar Devoluciones (${pendingReturnIds.length})`
+                  : "Guardar Devoluciones"}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
