@@ -31,7 +31,6 @@ import { ApiError } from "@/lib/api"
 import { toastExito } from "@/lib/toast"
 import {
   actualizarCliente,
-  CLIENTE_ESTADO_ACTIVO,
   crearCliente,
   eliminarCliente,
   inicialesCliente,
