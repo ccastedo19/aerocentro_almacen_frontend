@@ -15,6 +15,7 @@ import { Ubicaciones } from "@/pages/Ubicaciones";
 import { Marcas } from "@/pages/Marcas";
 import { HistorialPrestamos } from "@/pages/HistorialPrestamos";
 import { Mecanicos } from "@/pages/Mecanicos";
+import { Clientes } from "@/pages/Clientes";
 import { NotFound } from "@/pages/NotFound";
 
 const pages = [
@@ -27,6 +28,7 @@ const pages = [
   { path: "marcas", element: <Marcas /> },
   { path: "historial-prestamos", element: <HistorialPrestamos /> },
   { path: "mecanicos", element: <Mecanicos /> },
+  { path: "clientes", element: <Clientes /> },
 ];
 
 export const router = createBrowserRouter([

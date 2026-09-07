@@ -129,8 +129,8 @@ export const Mecanicos = () => {
         await loadItems()
         toastExito(
           estado === MECANICO_ESTADO_ACTIVO
-            ? "Mecánico reactivado correctamente."
-            : "Mecánico desactivado correctamente.",
+            ? "Personal reactivado correctamente."
+            : "Personal desactivado correctamente.",
         )
       } catch (error) {
         setPageError(
@@ -148,7 +148,7 @@ export const Mecanicos = () => {
 
     return columnHelper.columns([
       columnHelper.accessor("nombre_completo", {
-        header: "Mecánico",
+        header: "Personal",
         sortFn: "text",
         cell: ({ row }) => {
           const mecanico = row.original
@@ -284,10 +284,10 @@ export const Mecanicos = () => {
     try {
       if (editingItem) {
         await actualizarMecanico(editingItem.id, values)
-        toastExito("Mecánico actualizado correctamente.")
+        toastExito("Personal actualizado correctamente.")
       } else {
         await crearMecanico(values)
-        toastExito("Mecánico creado correctamente.")
+        toastExito("Personal creado correctamente.")
       }
 
       await loadItems()
@@ -309,7 +309,7 @@ export const Mecanicos = () => {
         return
       }
 
-      setFormError("No se pudo guardar el mecánico.")
+      setFormError("No se pudo guardar el personal.")
     } finally {
       setIsSaving(false)
     }
@@ -325,12 +325,12 @@ export const Mecanicos = () => {
       await eliminarMecanico(deletingItem.id)
       await loadItems()
       setDeletingItem(null)
-      toastExito("Mecánico eliminado correctamente.")
+      toastExito("Personal eliminado correctamente.")
     } catch (error) {
       setDeleteError(
         error instanceof ApiError
           ? error.errors.mecanico?.[0] || error.message
-          : "No se pudo eliminar el mecánico.",
+          : "No se pudo eliminar el personal.",
       )
     } finally {
       setIsDeleting(false)
@@ -338,15 +338,15 @@ export const Mecanicos = () => {
   }
 
   if (isLoading) {
-    return <PagePreloader recurso="todos los mecánicos" />
+    return <PagePreloader recurso="todos el personal interno" />
   }
 
   return (
     <div className="w-full space-y-8">
       <section className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-tight">Mecánicos</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Personal Interno</h1>
         <p className="text-sm text-muted-foreground">
-          Registra al personal del hangar que toma herramientas en préstamo.
+          Registra el personal interno que toma herramientas en préstamo.
         </p>
       </section>
 
@@ -359,7 +359,7 @@ export const Mecanicos = () => {
           <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center">
             <div className="relative w-full max-w-md">
               <label htmlFor="mecanico-search" className="sr-only">
-                Buscar mecánico
+                Buscar personal
               </label>
               <Search className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
               <Input
@@ -404,7 +404,7 @@ export const Mecanicos = () => {
             }}
           >
             <Plus data-icon="inline-start" />
-            Agregar mecánico
+            Agregar personal
           </Button>
         </div>
 
@@ -415,15 +415,15 @@ export const Mecanicos = () => {
           pageSizeOptions={[5, 10, 20]}
           emptyMessage={
             hasSearch
-              ? "No se encontraron mecánicos"
+              ? "No se encontro personal interno"
               : estadoFiltro !== "todos"
-                ? "No hay mecánicos en este estado"
-                : "No hay mecánicos registrados"
+                ? "No hay personal interno en este estado"
+                : "No hay personal interno registrado"
           }
           emptyDescription={
             hasSearch
               ? "Intenta con otro nombre, apodo, licencia o cargo."
-              : "Agrega el primer mecánico para comenzar."
+              : "Agrega el primer personal para comenzar."
           }
         />
       </section>
@@ -444,7 +444,7 @@ export const Mecanicos = () => {
 
       <ModalConfirmarEliminar
         open={deletingItem !== null}
-        singular="mecánico"
+        singular="personal"
         nombre={deletingItem?.nombre_completo}
         descripcion={
           deletingItem

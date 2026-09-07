@@ -2,6 +2,7 @@ import * as React from 'react'
 import {
   House,
   Combine,
+  ContactRound,
   DatabaseBackup,
   FolderTree,
   History,
@@ -33,7 +34,7 @@ const data = {
   teams: [
     {
       name: 'Aerocentro Almacén',
-      plan: 'Version 1.0',
+      plan: 'Version 1.1',
     },
   ],
   navGroups: [
@@ -92,12 +93,17 @@ const data = {
       ],
     },
     {
-      label: "Personal",
+      label: "Contactos",
       items: [
         {
-          title: "Mecánicos",
+          title: "Personal Interno",
           url: "/mecanicos",
           icon: UserRound,
+        },
+        {
+          title: "Clientes",
+          url: "/clientes",
+          icon: ContactRound,
         },
       ],
     },
@@ -119,7 +125,7 @@ const data = {
       ],
     },
   ]
-  
+
 }
 
 function TeamSwitcher({
@@ -136,7 +142,7 @@ function TeamSwitcher({
     return null
   }
 
- 
+
   return (
     <SidebarMenu>
       <SidebarMenuItem>
@@ -148,7 +154,7 @@ function TeamSwitcher({
               className="size-full object-contain"
             />
           </div>
-  
+
           <div className="grid flex-1 text-left text-sm leading-tight">
             <span className="truncate font-medium">{activeTeam.name}</span>
             <span className="truncate text-xs">{activeTeam.plan}</span>

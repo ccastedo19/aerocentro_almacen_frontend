@@ -225,227 +225,226 @@ export function ModalMecanico({
         }}
       >
         <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>
-            {isEditing ? "Editar mecánico" : "Agregar mecánico"}
-          </DialogTitle>
-        </DialogHeader>
+          <DialogHeader>
+            <DialogTitle>
+              {isEditing ? "Editar personal" : "Agregar personal"}
+            </DialogTitle>
+          </DialogHeader>
 
-        <form
-          id="mecanico-form"
-          className="space-y-4"
-          onSubmit={handleSubmit}
-          noValidate
-        >
-          {shownFormError ? (
-            <div
-              className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
-              role="alert"
-            >
-              {shownFormError}
-            </div>
-          ) : null}
+          <form
+            id="mecanico-form"
+            className="space-y-4"
+            onSubmit={handleSubmit}
+            noValidate
+          >
+            {shownFormError ? (
+              <div
+                className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                role="alert"
+              >
+                {shownFormError}
+              </div>
+            ) : null}
 
-          <div className="flex items-center gap-4">
-            <button
-              type="button"
-              className="rounded-xl outline-none enabled:cursor-zoom-in enabled:focus-visible:ring-2 enabled:focus-visible:ring-ring enabled:focus-visible:ring-offset-2"
-              disabled={!isEditing || !previewUrl}
-              aria-label={isEditing && previewUrl ? "Ampliar foto del mecánico" : undefined}
-              onClick={() => setIsImagePreviewOpen(true)}
-            >
-              <Avatar className="size-16 overflow-hidden rounded-xl after:rounded-xl">
-                {previewUrl ? (
-                  <AvatarImage
-                    src={optimizarImagenMecanico(previewUrl, 300, 300)}
-                    alt="Foto del mecánico"
-                    className="rounded-xl object-cover"
-                  />
-                ) : null}
-                <AvatarFallback className="rounded-xl text-base">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
-            </button>
+            <div className="flex items-center gap-4">
+              <button
+                type="button"
+                className="rounded-xl outline-none enabled:cursor-zoom-in enabled:focus-visible:ring-2 enabled:focus-visible:ring-ring enabled:focus-visible:ring-offset-2"
+                disabled={!isEditing || !previewUrl}
+                aria-label={isEditing && previewUrl ? "Ampliar foto del personal" : undefined}
+                onClick={() => setIsImagePreviewOpen(true)}
+              >
+                <Avatar className="size-16 overflow-hidden rounded-xl after:rounded-xl">
+                  {previewUrl ? (
+                    <AvatarImage
+                      src={optimizarImagenMecanico(previewUrl, 300, 300)}
+                      alt="Foto del personal"
+                      className="rounded-xl object-cover"
+                    />
+                  ) : null}
+                  <AvatarFallback className="rounded-xl text-base">
+                    {initials}
+                  </AvatarFallback>
+                </Avatar>
+              </button>
 
-            <div className="min-w-0 flex-1 space-y-2">
-              <input
-                ref={fileInputRef}
-                id="mecanico-imagen"
-                type="file"
-                accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
-                className="sr-only"
-                disabled={isSubmitting}
-                onChange={(event) => handleFileChange(event.target.files?.[0])}
-              />
-
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="info"
+              <div className="min-w-0 flex-1 space-y-2">
+                <input
+                  ref={fileInputRef}
+                  id="mecanico-imagen"
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"
+                  className="sr-only"
                   disabled={isSubmitting}
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <ImagePlus data-icon="inline-start" />
-                  {previewUrl ? "Cambiar foto" : "Subir foto"}
-                </Button>
-                {previewUrl ? (
+                  onChange={(event) => handleFileChange(event.target.files?.[0])}
+                />
+
+                <div className="flex flex-wrap gap-2">
                   <Button
                     type="button"
-                    variant="destructive"
+                    variant="info"
                     disabled={isSubmitting}
-                    onClick={handleRemoveImage}
+                    onClick={() => fileInputRef.current?.click()}
                   >
-                    <Trash2 data-icon="inline-start" />
-                    Quitar
+                    <ImagePlus data-icon="inline-start" />
+                    {previewUrl ? "Cambiar foto" : "Subir foto"}
                   </Button>
+                  {previewUrl ? (
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      disabled={isSubmitting}
+                      onClick={handleRemoveImage}
+                    >
+                      <Trash2 data-icon="inline-start" />
+                      Quitar
+                    </Button>
+                  ) : null}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  JPG, PNG o WEBP. Máximo 4 MB.
+                </p>
+                {shownErrors.imagen ? (
+                  <p className="text-sm text-destructive">{shownErrors.imagen}</p>
                 ) : null}
               </div>
-              <p className="text-xs text-muted-foreground">
-                JPG, PNG o WEBP. Máximo 4 MB.
-              </p>
-              {shownErrors.imagen ? (
-                <p className="text-sm text-destructive">{shownErrors.imagen}</p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field
+                id="mecanico-nombre"
+                label="Nombre"
+                placeholder="Ej. Carlos"
+                value={nombre}
+                disabled={isSubmitting}
+                error={shownErrors.nombre}
+                onChange={(value) => {
+                  setNombre(value)
+                  clearFieldError("nombre")
+                }}
+              />
+              <Field
+                id="mecanico-apellido"
+                label="Apellido"
+                placeholder="Ej. Mendoza"
+                value={apellido}
+                disabled={isSubmitting}
+                error={shownErrors.apellido}
+                onChange={(value) => {
+                  setApellido(value)
+                  clearFieldError("apellido")
+                }}
+              />
+              <Field
+                id="mecanico-apodo"
+                label="Apodo"
+                optional
+                placeholder="Ej. El Gato"
+                value={apodo}
+                disabled={isSubmitting}
+                error={shownErrors.apodo}
+                onChange={(value) => {
+                  setApodo(value)
+                  clearFieldError("apodo")
+                }}
+              />
+              <Field
+                id="mecanico-licencia"
+                label="N° de licencia"
+                optional
+                placeholder="Ej. LIC-001"
+                value={nroLicencia}
+                disabled={isSubmitting}
+                error={shownErrors.nro_licencia}
+                onChange={(value) => {
+                  setNroLicencia(value)
+                  clearFieldError("nro_licencia")
+                }}
+              />
+              <Field
+                id="mecanico-cargo"
+                label="Cargo"
+                placeholder="Ej. Aviónica"
+                value={cargo}
+                disabled={isSubmitting}
+                error={shownErrors.cargo}
+                onChange={(value) => {
+                  setCargo(value)
+                  clearFieldError("cargo")
+                }}
+              />
+            </div>
+
+            <Field
+              id="mecanico-telefono"
+              label="Teléfono"
+              optional
+              placeholder="Ej. 0412-1234567"
+              value={telefono}
+              disabled={isSubmitting}
+              error={shownErrors.telefono}
+              onChange={(value) => {
+                setTelefono(value)
+                clearFieldError("telefono")
+              }}
+            />
+
+            <fieldset className="space-y-2">
+              <legend className="text-sm font-medium">Color de identificación</legend>
+              <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
+                {COLORES_MECANICO.map((opcion) => (
+                  <button
+                    key={opcion.value}
+                    type="button"
+                    className={`flex items-center justify-center rounded-lg border p-2 transition-colors ${color === opcion.value
+                        ? "border-foreground bg-muted"
+                        : "border-transparent hover:bg-muted/60"
+                      }`}
+                    disabled={isSubmitting}
+                    aria-pressed={color === opcion.value}
+                    aria-label={opcion.label}
+                    title={opcion.label}
+                    onClick={() => {
+                      setColor(opcion.value)
+                      clearFieldError("color")
+                    }}
+                  >
+                    <span
+                      className={`size-6 rounded-full ${opcion.muestra}`}
+                      aria-hidden="true"
+                    />
+                  </button>
+                ))}
+              </div>
+              {shownErrors.color ? (
+                <p className="text-sm text-destructive">{shownErrors.color}</p>
               ) : null}
-            </div>
-          </div>
+            </fieldset>
+          </form>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field
-              id="mecanico-nombre"
-              label="Nombre"
-              placeholder="Ej. Carlos"
-              value={nombre}
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
               disabled={isSubmitting}
-              error={shownErrors.nombre}
-              onChange={(value) => {
-                setNombre(value)
-                clearFieldError("nombre")
-              }}
-            />
-            <Field
-              id="mecanico-apellido"
-              label="Apellido"
-              placeholder="Ej. Mendoza"
-              value={apellido}
-              disabled={isSubmitting}
-              error={shownErrors.apellido}
-              onChange={(value) => {
-                setApellido(value)
-                clearFieldError("apellido")
-              }}
-            />
-            <Field
-              id="mecanico-apodo"
-              label="Apodo"
-              optional
-              placeholder="Ej. El Gato"
-              value={apodo}
-              disabled={isSubmitting}
-              error={shownErrors.apodo}
-              onChange={(value) => {
-                setApodo(value)
-                clearFieldError("apodo")
-              }}
-            />
-            <Field
-              id="mecanico-licencia"
-              label="N° de licencia"
-              optional
-              placeholder="Ej. LIC-001"
-              value={nroLicencia}
-              disabled={isSubmitting}
-              error={shownErrors.nro_licencia}
-              onChange={(value) => {
-                setNroLicencia(value)
-                clearFieldError("nro_licencia")
-              }}
-            />
-            <Field
-              id="mecanico-cargo"
-              label="Cargo"
-              placeholder="Ej. Aviónica"
-              value={cargo}
-              disabled={isSubmitting}
-              error={shownErrors.cargo}
-              onChange={(value) => {
-                setCargo(value)
-                clearFieldError("cargo")
-              }}
-            />
-          </div>
-
-          <Field
-            id="mecanico-telefono"
-            label="Teléfono"
-            optional
-            placeholder="Ej. 0412-1234567"
-            value={telefono}
-            disabled={isSubmitting}
-            error={shownErrors.telefono}
-            onChange={(value) => {
-              setTelefono(value)
-              clearFieldError("telefono")
-            }}
-          />
-
-          <fieldset className="space-y-2">
-            <legend className="text-sm font-medium">Color de identificación</legend>
-            <div className="grid grid-cols-4 gap-2 sm:grid-cols-8">
-              {COLORES_MECANICO.map((opcion) => (
-                <button
-                  key={opcion.value}
-                  type="button"
-                  className={`flex items-center justify-center rounded-lg border p-2 transition-colors ${
-                    color === opcion.value
-                      ? "border-foreground bg-muted"
-                      : "border-transparent hover:bg-muted/60"
-                  }`}
-                  disabled={isSubmitting}
-                  aria-pressed={color === opcion.value}
-                  aria-label={opcion.label}
-                  title={opcion.label}
-                  onClick={() => {
-                    setColor(opcion.value)
-                    clearFieldError("color")
-                  }}
-                >
-                  <span
-                    className={`size-6 rounded-full ${opcion.muestra}`}
-                    aria-hidden="true"
-                  />
-                </button>
-              ))}
-            </div>
-            {shownErrors.color ? (
-              <p className="text-sm text-destructive">{shownErrors.color}</p>
-            ) : null}
-          </fieldset>
-        </form>
-
-        <DialogFooter>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={isSubmitting}
-            onClick={closeModal}
-          >
-            Cancelar
-          </Button>
-          <Button type="submit" form="mecanico-form" disabled={isSubmitting}>
-            {isSubmitting ? "Guardando..." : "Guardar"}
-          </Button>
-        </DialogFooter>
+              onClick={closeModal}
+            >
+              Cancelar
+            </Button>
+            <Button type="submit" form="mecanico-form" disabled={isSubmitting}>
+              {isSubmitting ? "Guardando..." : "Guardar"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
       <Dialog open={isImagePreviewOpen} onOpenChange={setIsImagePreviewOpen}>
         <DialogContent className="max-w-[calc(100%-2rem)] p-2 sm:max-w-3xl">
-          <DialogTitle className="sr-only">Foto del mecánico</DialogTitle>
+          <DialogTitle className="sr-only">Foto del personal</DialogTitle>
           {previewUrl ? (
             <img
               src={previewUrl}
-              alt={`Foto ampliada de ${item?.nombre_completo ?? "mecánico"}`}
+              alt={`Foto ampliada de ${item?.nombre_completo ?? "personal"}`}
               className="max-h-[80vh] w-full rounded-lg object-contain"
             />
           ) : null}
