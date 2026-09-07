@@ -60,7 +60,7 @@ type ModalAgregarPrestamoProps = {
   error?: string
   onOpenChange: (open: boolean) => void
   onSubmit: (unidadIds: string[]) => void
-  onExchange?: (unidadId: string) => Promise<void>
+  onExchange?: (item: PrestamoEnUso) => Promise<void>
 }
 
 // Fila de unidad disponible (checkbox de selección)
@@ -96,16 +96,54 @@ const UnidadItemRow = memo(function UnidadItemRow({
   )
 })
 
-// Fila de herramienta en uso por otro mecánico (botón de intercambio)
+// Fila de herramienta en uso (botón de intercambio si es de otro mecánico, o indicativo azul si es del mismo mecánico)
 const PrestamoEnUsoItemRow = memo(function PrestamoEnUsoItemRow({
   item,
+  isCurrentMechanic = false,
   disabled,
   onExchange,
 }: {
   item: PrestamoEnUso
+  isCurrentMechanic?: boolean
   disabled: boolean
   onExchange: (item: PrestamoEnUso) => void
 }) {
+  if (isCurrentMechanic) {
+    return (
+      <div className="flex flex-col gap-3 rounded-xl border border-blue-500/30 bg-blue-500/[0.05] p-3 transition-colors hover:bg-blue-500/[0.08] sm:flex-row sm:items-center sm:justify-between dark:border-blue-400/30 dark:bg-blue-500/[0.08]">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-blue-500/15">
+            <Wrench className="size-4 text-blue-600 dark:text-blue-400" />
+          </div>
+          <div className="min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="truncate text-base font-medium">{item.nombre}</p>
+              <span className="rounded-full bg-blue-500/15 px-2.5 py-0.5 text-xs font-semibold text-blue-700 dark:text-blue-300">
+                La está usando
+              </span>
+            </div>
+            <DetalleUnidadPrestamo
+              unidad={item.unidad}
+              className="mt-0.5 text-sm"
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
+          <div className="flex items-center gap-2 rounded-lg bg-blue-500/10 px-2.5 py-1.5 text-xs">
+            <UserRound className="size-3.5 text-blue-600 dark:text-blue-400 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-[11px] text-blue-700/80 dark:text-blue-300/80 leading-tight">En posesión de</p>
+              <p className="truncate font-semibold text-blue-800 dark:text-blue-200 leading-tight">
+                Este mecánico ({item.mechanicName})
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-amber-500/30 bg-amber-500/[0.04] p-3 transition-colors hover:bg-amber-500/[0.08] sm:flex-row sm:items-center sm:justify-between dark:border-amber-400/30 dark:bg-amber-500/[0.07]">
       <div className="flex min-w-0 items-center gap-3">
@@ -306,7 +344,7 @@ export function ModalAgregarPrestamo({
     })
   }, [availableIds, displayedCombinadas, deferredSearch, deferredFiltros, filtro, selectedSet])
 
-  // Filtrado de herramientas en uso por otros mecánicos
+  // Filtrado de herramientas en uso (tanto de este mecánico como de otros)
   const filteredLoansInUse = useMemo(() => {
     if (filtro === "combinadas" || filtro === "seleccionadas") {
       return []
@@ -314,7 +352,7 @@ export function ModalAgregarPrestamo({
 
     const query = deferredSearch.trim().toLocaleLowerCase("es")
 
-    return (displayedLoansInUse ?? []).filter((loan) => {
+    const list = (displayedLoansInUse ?? []).filter((loan) => {
       // 1. Filtros secundarios (comboboxes: color, marca, tamano, ubicacion)
       if (!filtrosUnidadVacios(deferredFiltros)) {
         if (!unidadCoincideFiltros(loan.unidad, deferredFiltros)) {
@@ -341,7 +379,18 @@ export function ModalAgregarPrestamo({
 
       return true
     })
-  }, [deferredFiltros, deferredSearch, displayedLoansInUse, filtro])
+
+    // Colocar primero las herramientas que ya tiene en posesión el mecánico actual
+    if (displayedMechanic) {
+      return [...list].sort((a, b) => {
+        const aIsCurrent = a.mechanicId === displayedMechanic.id ? 1 : 0
+        const bIsCurrent = b.mechanicId === displayedMechanic.id ? 1 : 0
+        return bIsCurrent - aIsCurrent
+      })
+    }
+
+    return list
+  }, [deferredFiltros, deferredSearch, displayedLoansInUse, displayedMechanic, filtro])
 
   const unidadesVisibles = useMemo(() => {
     if (filtro === "en_uso" || filtro === "combinadas") return []
@@ -398,9 +447,13 @@ export function ModalAgregarPrestamo({
 
   const handleConfirmExchange = async () => {
     if (!exchangeTarget || !onExchange) return
+    const target = exchangeTarget
     setIsExchanging(true)
     try {
-      await onExchange(exchangeTarget.unidadId)
+      await onExchange(target)
+      setSelectedIds((current) =>
+        current.includes(target.unidadId) ? current : [...current, target.unidadId],
+      )
       setExchangeTarget(null)
     } catch {
       // El error se gestiona en la vista
@@ -635,11 +688,14 @@ export function ModalAgregarPrestamo({
                   />
                 ))}
 
-                {/* Herramientas en préstamo con otros mecánicos (intercambio) */}
+                {/* Herramientas en préstamo (en uso por este mecánico u otros mecánicos) */}
                 {filteredLoansInUse.map((loan) => (
                   <PrestamoEnUsoItemRow
                     key={loan.unidadId}
                     item={loan}
+                    isCurrentMechanic={
+                      displayedMechanic ? loan.mechanicId === displayedMechanic.id : false
+                    }
                     disabled={disabledGeneral}
                     onExchange={handleExchangeClick}
                   />
@@ -724,13 +780,14 @@ export function ModalAgregarPrestamo({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base font-semibold">
               <ArrowLeftRight className="size-5 text-amber-600 dark:text-amber-400" />
-              Intercambiar herramienta
+              Pedir devolución e intercambiar
             </DialogTitle>
             <DialogDescription className="text-sm">
               Esta herramienta actualmente la tiene{" "}
               <strong className="text-foreground">{exchangeTarget?.mechanicName}</strong>.
               <br />
-              Al intercambiarla, se registrará su devolución automática y pasará a préstamo activo para{" "}
+              Al confirmar, se registrará la devolución de{" "}
+              <strong className="text-foreground">{exchangeTarget?.mechanicName}</strong> y quedará seleccionada automáticamente en este nuevo préstamo para{" "}
               <strong className="text-foreground">{displayedMechanic?.nombre_completo}</strong>.
             </DialogDescription>
           </DialogHeader>

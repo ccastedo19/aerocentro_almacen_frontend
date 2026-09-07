@@ -24,6 +24,10 @@ const routes: Record<
     title: "Punto de Préstamos",
   },
 
+  "/punto-recepcion": {
+    title: "Punto de Recepción",
+  },
+
   "/herramientas": {
     title: "Herramientas",
     parent: "Inventario",
@@ -54,9 +58,19 @@ const routes: Record<
     parent: "Reportes",
   },
 
+  "/historial-recepcion": {
+    title: "Historial de Recepción",
+    parent: "Reportes",
+  },
+
   "/mecanicos": {
-    title: "Mecánicos",
-    parent: "Personal",
+    title: "Personal Interno",
+    parent: "Contactos",
+  },
+
+  "/clientes": {
+    title: "Clientes",
+    parent: "Contactos",
   },
 
   "/usuarios": {

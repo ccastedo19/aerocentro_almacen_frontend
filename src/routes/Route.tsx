@@ -14,19 +14,23 @@ import { Categorias } from "@/pages/Categorias";
 import { Ubicaciones } from "@/pages/Ubicaciones";
 import { Marcas } from "@/pages/Marcas";
 import { HistorialPrestamos } from "@/pages/HistorialPrestamos";
+import { HistorialRecepcion } from "@/pages/HistorialRecepcion";
 import { Mecanicos } from "@/pages/Mecanicos";
 import { Clientes } from "@/pages/Clientes";
+import { PuntoRecepcion } from "@/pages/PuntoRecepcion";
 import { NotFound } from "@/pages/NotFound";
 
 const pages = [
   { path: "inicio", element: <Inicio /> },
   { path: "punto-prestamos", element: <PuntoPrestamos /> },
+  { path: "punto-recepcion", element: <PuntoRecepcion /> },
   { path: "herramientas", element: <Herramientas /> },
   { path: "combinadas", element: <Combinadas /> },
   { path: "categorias", element: <Categorias /> },
   { path: "ubicaciones", element: <Ubicaciones /> },
   { path: "marcas", element: <Marcas /> },
   { path: "historial-prestamos", element: <HistorialPrestamos /> },
+  { path: "historial-recepcion", element: <HistorialRecepcion /> },
   { path: "mecanicos", element: <Mecanicos /> },
   { path: "clientes", element: <Clientes /> },
 ];

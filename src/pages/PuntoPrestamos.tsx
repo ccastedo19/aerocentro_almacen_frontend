@@ -32,7 +32,6 @@ import {
   devolverMultiplesDetalles,
   devolverTodasAbsoluto,
   estiloTarjetaMecanico,
-  intercambiarPrestamos,
   listarHerramientasGeneral,
   listarHerramientasEnUso,
   listarPrestamosDeMecanico,
@@ -180,7 +179,7 @@ export const PuntoPrestamos = () => {
       ])
       setAvailableUnits(unidades)
       setCombinadas(combinadasActivas)
-      setLoansInUse(enUso.filter((l) => l.mechanicId !== mecanicoId))
+      setLoansInUse(enUso)
     } catch (error) {
       setAddError(
         error instanceof ApiError
@@ -259,22 +258,21 @@ export const PuntoPrestamos = () => {
     }
   }
 
-  const handleExchangeLoan = async (unidadId: string) => {
+  const handleExchangeLoan = async (item: PrestamoEnUso) => {
     if (!addMechanicId) return
 
     setAddError("")
     try {
-      await intercambiarPrestamos(addMechanicId, [unidadId])
-      setAddMechanicId(null)
+      await devolverMultiplesDetalles([item.detalleId])
       await refreshAfterChange()
-      toastExito("Herramienta intercambiada correctamente.")
+      toastExito(`Herramienta devuelta de ${item.mechanicName} y lista para prestar.`)
     } catch (error) {
       const message =
         error instanceof ApiError
-          ? error.errors.unidades_ids?.[0]
-            || error.errors.mecanico_destino_id?.[0]
+          ? error.errors.detalles_ids?.[0]
+            || error.errors.detalle?.[0]
             || error.message
-          : "No se pudo realizar el intercambio de préstamos."
+          : "No se pudo procesar la devolución de la herramienta."
       setAddError(message)
       throw error
     }

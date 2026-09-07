@@ -4,6 +4,8 @@ import {
   Combine,
   ContactRound,
   DatabaseBackup,
+  FileCheck2,
+  FileClock,
   FolderTree,
   History,
   MapPin,
@@ -50,6 +52,11 @@ const data = {
           url: "/punto-prestamos",
           icon: Wrench,
         },
+        {
+          title: "Punto de Recepción",
+          url: "/punto-recepcion",
+          icon: FileCheck2,
+        },
       ],
     },
     {
@@ -89,6 +96,11 @@ const data = {
           title: "Historial de Préstamos",
           url: "/historial-prestamos",
           icon: History,
+        },
+        {
+          title: "Historial de Recepción",
+          url: "/historial-recepcion",
+          icon: FileClock,
         },
       ],
     },
