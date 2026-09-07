@@ -402,7 +402,6 @@ export function ModalAgregarPrestamo({
     try {
       await onExchange(exchangeTarget.unidadId)
       setExchangeTarget(null)
-      closeModal()
     } catch {
       // El error se gestiona en la vista
     } finally {
