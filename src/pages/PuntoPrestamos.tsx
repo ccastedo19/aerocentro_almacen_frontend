@@ -270,8 +270,8 @@ export const PuntoPrestamos = () => {
       const message =
         error instanceof ApiError
           ? error.errors.detalles_ids?.[0]
-            || error.errors.detalle?.[0]
-            || error.message
+          || error.errors.detalle?.[0]
+          || error.message
           : "No se pudo procesar la devolución de la herramienta."
       setAddError(message)
       throw error
@@ -304,8 +304,8 @@ export const PuntoPrestamos = () => {
       const message =
         error instanceof ApiError
           ? error.errors.detalles_ids?.[0]
-            || error.errors.detalle?.[0]
-            || error.message
+          || error.errors.detalle?.[0]
+          || error.message
           : "No se pudieron registrar las devoluciones."
 
       if (origen === "general") {

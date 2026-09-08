@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import {
   ArrowDown,
   ArrowUp,
@@ -105,6 +105,7 @@ export const PuntoRecepcion = () => {
   // Item en edición/creación rápida
   const [nuevoItem, setNewItem] = useState<ItemFormValues>({ ...itemVacio })
   const [itemInputError, setItemInputError] = useState("")
+  const partNumberInputRef = useRef<HTMLInputElement>(null)
 
   // Estados de guardado
   const [isSavingDraft, setIsSavingDraft] = useState(false)
@@ -231,6 +232,26 @@ export const PuntoRecepcion = () => {
     }
   }, [loadClientes])
 
+  const handleCantidadChange = (val: string) => {
+    const digitsOnly = val.replace(/\D/g, "")
+    if (digitsOnly === "") {
+      setNewItem((prev) => ({ ...prev, cantidad: "" as unknown as number }))
+      return
+    }
+    const parsed = parseInt(digitsOnly, 10)
+    if (parsed === 0) {
+      setNewItem((prev) => ({ ...prev, cantidad: 1 }))
+    } else {
+      setNewItem((prev) => ({ ...prev, cantidad: parsed }))
+    }
+  }
+
+  const handleCantidadBlur = () => {
+    if (!nuevoItem.cantidad || Number(nuevoItem.cantidad) < 1) {
+      setNewItem((prev) => ({ ...prev, cantidad: 1 }))
+    }
+  }
+
   const handleAgregarItem = (e?: React.FormEvent) => {
     if (e) e.preventDefault()
     setItemInputError("")
@@ -240,10 +261,7 @@ export const PuntoRecepcion = () => {
       return
     }
 
-    if (nuevoItem.cantidad < 1) {
-      setItemInputError("La cantidad debe ser al menos 1.")
-      return
-    }
+    const cant = Number(nuevoItem.cantidad) >= 1 ? Number(nuevoItem.cantidad) : 1
 
     const nextOrder =
       items.length > 0
@@ -253,7 +271,7 @@ export const PuntoRecepcion = () => {
     const itemData: ItemFormValues = {
       part_number: nuevoItem.part_number.trim(),
       componente: nuevoItem.componente.trim(),
-      cantidad: Number(nuevoItem.cantidad) || 1,
+      cantidad: cant,
       serie: nuevoItem.serie.trim(),
       observacion: nuevoItem.observacion.trim(),
       _order:
@@ -272,12 +290,18 @@ export const PuntoRecepcion = () => {
     }
 
     setNewItem({ ...itemVacio })
+    setTimeout(() => {
+      partNumberInputRef.current?.focus()
+    }, 0)
   }
 
   const handleIniciarEditarItem = (index: number) => {
     setEditingIndex(index)
     setNewItem({ ...items[index] })
     setItemInputError("")
+    setTimeout(() => {
+      partNumberInputRef.current?.focus()
+    }, 0)
   }
 
   const handleEliminarItem = (index: number) => {
@@ -695,6 +719,7 @@ export const PuntoRecepcion = () => {
                       Part Number
                     </label>
                     <Input
+                      ref={partNumberInputRef}
                       placeholder="Ej: 646275-1"
                       value={nuevoItem.part_number}
                       onChange={(e) =>
@@ -707,7 +732,7 @@ export const PuntoRecepcion = () => {
                     />
                   </div>
 
-                  <div className="sm:col-span-4">
+                  <div className="sm:col-span-5">
                     <label className="text-sm font-medium text-black dark:text-white block mb-1 relative top-[5px]">
                       Componente / Descripción *
                     </label>
@@ -724,21 +749,18 @@ export const PuntoRecepcion = () => {
                     />
                   </div>
 
-                  <div className="sm:col-span-2">
+                  <div className="sm:col-span-1">
                     <label className="text-sm font-medium text-black dark:text-white block mb-1 relative top-[5px]">
                       Cant. *
                     </label>
                     <Input
-                      type="number"
-                      min={1}
+                      type="text"
+                      inputMode="numeric"
                       value={nuevoItem.cantidad}
-                      onChange={(e) =>
-                        setNewItem((prev) => ({
-                          ...prev,
-                          cantidad: parseInt(e.target.value) || 1,
-                        }))
-                      }
-                      className="h-9 text-xs text-center"
+                      onChange={(e) => handleCantidadChange(e.target.value)}
+                      onBlur={handleCantidadBlur}
+                      placeholder="1"
+                      className="h-9 text-xs text-center px-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                     />
                   </div>
 
@@ -823,9 +845,9 @@ export const PuntoRecepcion = () => {
 
               {/* Tabla de ítems */}
               <div className="border rounded-lg overflow-hidden">
-                <div className="overflow-x-auto max-h-[350px]">
+                <div className="overflow-x-auto overflow-y-auto h-[320px]">
                   <table className="w-full text-left text-xs border-collapse">
-                    <thead className="bg-muted/70 sticky top-0 border-b font-semibold text-muted-foreground">
+                    <thead className="bg-muted sticky top-0 z-10 border-b font-semibold text-muted-foreground shadow-xs">
                       <tr>
                         <th className="py-2.5 px-3 w-10 text-center text-sm">N°</th>
                         <th className="py-2.5 px-3 text-sm">Part Number</th>
@@ -863,9 +885,9 @@ export const PuntoRecepcion = () => {
                         <tr>
                           <td
                             colSpan={7}
-                            className="py-8 text-center text-muted-foreground text-sm"
+                            className="h-[250px] text-center text-muted-foreground text-sm"
                           >
-                            <div className="flex flex-col items-center justify-center gap-1.5">
+                            <div className="flex flex-col items-center justify-center gap-1.5 h-full">
                               <FileText className="size-8 text-muted-foreground/40" />
                               <p className="text-xs">
                                 No se han agregado componentes aún.
@@ -880,7 +902,7 @@ export const PuntoRecepcion = () => {
                         items.map((item, idx) => (
                           <tr
                             key={idx}
-                            className={`transition-colors ${editingIndex === idx
+                            className={`border-b border-border transition-colors ${editingIndex === idx
                               ? "bg-amber-500/20 text-sm border-l-4 border-l-amber-500 dark:text-amber-100 font-medium"
                               : "hover:bg-muted/30"
                               }`}

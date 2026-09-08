@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
   ArrowDown,
   ArrowUp,
@@ -76,6 +76,7 @@ export const ModalEditarOrdenRecepcion = ({
   const [sortDirection, setSortDirection] = useState<"asc" | "desc" | null>(null)
   const [nuevoItem, setNewItem] = useState<ItemFormValues>({ ...itemVacio })
   const [itemInputError, setItemInputError] = useState("")
+  const partNumberInputRef = useRef<HTMLInputElement>(null)
 
   const [isSaving, setIsSaving] = useState(false)
   const [error, setError] = useState("")
@@ -106,6 +107,26 @@ export const ModalEditarOrdenRecepcion = ({
     }
   }, [orden, open])
 
+  const handleCantidadChange = (val: string) => {
+    const digitsOnly = val.replace(/\D/g, "")
+    if (digitsOnly === "") {
+      setNewItem((prev) => ({ ...prev, cantidad: "" as unknown as number }))
+      return
+    }
+    const parsed = parseInt(digitsOnly, 10)
+    if (parsed === 0) {
+      setNewItem((prev) => ({ ...prev, cantidad: 1 }))
+    } else {
+      setNewItem((prev) => ({ ...prev, cantidad: parsed }))
+    }
+  }
+
+  const handleCantidadBlur = () => {
+    if (!nuevoItem.cantidad || Number(nuevoItem.cantidad) < 1) {
+      setNewItem((prev) => ({ ...prev, cantidad: 1 }))
+    }
+  }
+
   const handleAgregarItem = (e?: React.FormEvent) => {
     if (e) e.preventDefault()
     setItemInputError("")
@@ -115,10 +136,7 @@ export const ModalEditarOrdenRecepcion = ({
       return
     }
 
-    if (nuevoItem.cantidad < 1) {
-      setItemInputError("La cantidad debe ser mayor a 0.")
-      return
-    }
+    const cant = Number(nuevoItem.cantidad) >= 1 ? Number(nuevoItem.cantidad) : 1
 
     const nextOrder =
       items.length > 0
@@ -128,7 +146,7 @@ export const ModalEditarOrdenRecepcion = ({
     const itemData: ItemFormValues = {
       part_number: nuevoItem.part_number.trim(),
       componente: nuevoItem.componente.trim(),
-      cantidad: Number(nuevoItem.cantidad) || 1,
+      cantidad: cant,
       serie: nuevoItem.serie.trim(),
       observacion: nuevoItem.observacion.trim(),
       _order:
@@ -147,12 +165,18 @@ export const ModalEditarOrdenRecepcion = ({
     }
 
     setNewItem({ ...itemVacio })
+    setTimeout(() => {
+      partNumberInputRef.current?.focus()
+    }, 0)
   }
 
   const handleIniciarEditarItem = (index: number) => {
     setEditingIndex(index)
     setNewItem({ ...items[index] })
     setItemInputError("")
+    setTimeout(() => {
+      partNumberInputRef.current?.focus()
+    }, 0)
   }
 
   const handleEliminarItem = (index: number) => {
@@ -385,6 +409,7 @@ export const ModalEditarOrdenRecepcion = ({
             >
               <div className="sm:col-span-3">
                 <Input
+                  ref={partNumberInputRef}
                   placeholder="Part Number (P/N)"
                   value={nuevoItem.part_number}
                   onChange={(e) =>
@@ -393,7 +418,7 @@ export const ModalEditarOrdenRecepcion = ({
                   className="h-8 text-xs"
                 />
               </div>
-              <div className="sm:col-span-4">
+              <div className="sm:col-span-5">
                 <Input
                   placeholder="Componente *"
                   value={nuevoItem.componente}
@@ -403,19 +428,15 @@ export const ModalEditarOrdenRecepcion = ({
                   className="h-8 text-xs"
                 />
               </div>
-              <div className="sm:col-span-2">
+              <div className="sm:col-span-1">
                 <Input
-                  type="number"
-                  min={1}
-                  placeholder="Cant. *"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="1"
                   value={nuevoItem.cantidad}
-                  onChange={(e) =>
-                    setNewItem((p) => ({
-                      ...p,
-                      cantidad: parseInt(e.target.value) || 1,
-                    }))
-                  }
-                  className="h-8 text-xs text-center"
+                  onChange={(e) => handleCantidadChange(e.target.value)}
+                  onBlur={handleCantidadBlur}
+                  className="h-8 text-xs text-center px-1 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
               </div>
               <div className="sm:col-span-3">
@@ -480,9 +501,9 @@ export const ModalEditarOrdenRecepcion = ({
             </form>
 
             {/* Tabla de items */}
-            <div className="border rounded-lg overflow-hidden max-h-48 overflow-y-auto">
+            <div className="border rounded-lg overflow-hidden h-52 overflow-y-auto">
               <table className="w-full text-left text-xs">
-                <thead className="bg-muted/70 sticky top-0 border-b font-semibold text-muted-foreground">
+                <thead className="bg-muted sticky top-0 z-10 border-b font-semibold text-muted-foreground shadow-xs">
                   <tr>
                     <th className="py-2 px-2.5 w-8 text-center">#</th>
                     <th className="py-2 px-2.5">P/N</th>
@@ -516,69 +537,79 @@ export const ModalEditarOrdenRecepcion = ({
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
-                  {items.map((item, idx) => (
-                    <tr
-                      key={idx}
-                      className={`transition-colors ${
-                        editingIndex === idx
-                          ? "bg-amber-500/20 border-l-4 border-l-amber-500 text-amber-950 dark:text-amber-100 font-medium"
-                          : "hover:bg-muted/30"
-                      }`}
-                    >
-                      <td className="py-2 px-2.5 text-center font-semibold text-muted-foreground">
-                        {idx + 1}
-                      </td>
-                      <td className="py-2 px-2.5 font-mono text-[11px]">
-                        {item.part_number || "-"}
-                      </td>
-                      <td className="py-2 px-2.5 font-medium">{item.componente}</td>
-                      <td className="py-2 px-2.5 text-center">
-                        <span
-                          className={`inline-block px-1.5 py-0.5 rounded font-semibold ${
-                            editingIndex === idx
-                              ? "bg-amber-500/30 text-amber-900 dark:text-amber-200"
-                              : "bg-primary/10 text-primary"
-                          }`}
-                        >
-                          {item.cantidad}
-                        </span>
-                      </td>
-                      <td className="py-2 px-2.5 font-mono text-[11px]">
-                        {item.serie || "-"}
-                      </td>
-                      <td className="py-2 px-2.5 text-muted-foreground truncate max-w-[150px]">
-                        {item.observacion || "-"}
-                      </td>
-                      <td className="py-2 px-2.5 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className={`size-6 ${
-                              editingIndex === idx
-                                ? "text-amber-600 bg-amber-500/25 hover:bg-amber-500/35"
-                                : "text-muted-foreground hover:text-amber-600 hover:bg-amber-500/10"
-                            }`}
-                            onClick={() => handleIniciarEditarItem(idx)}
-                            title="Editar ítem"
-                          >
-                            <Pencil className="size-3" />
-                          </Button>
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="size-6 text-destructive hover:bg-destructive/10"
-                            onClick={() => handleEliminarItem(idx)}
-                            title="Eliminar ítem"
-                          >
-                            <Trash2 className="size-3" />
-                          </Button>
+                  {items.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="h-36 text-center text-muted-foreground">
+                        <div className="flex flex-col items-center justify-center gap-1 h-full">
+                          <p className="text-xs">No hay componentes agregados.</p>
                         </div>
                       </td>
                     </tr>
-                  ))}
+                  ) : (
+                    items.map((item, idx) => (
+                      <tr
+                        key={idx}
+                        className={`border-b border-border transition-colors ${
+                          editingIndex === idx
+                            ? "bg-amber-500/20 border-l-4 border-l-amber-500 text-amber-950 dark:text-amber-100 font-medium"
+                            : "hover:bg-muted/30"
+                        }`}
+                      >
+                        <td className="py-2 px-2.5 text-center font-semibold text-muted-foreground">
+                          {idx + 1}
+                        </td>
+                        <td className="py-2 px-2.5 font-mono text-[11px]">
+                          {item.part_number || "-"}
+                        </td>
+                        <td className="py-2 px-2.5 font-medium">{item.componente}</td>
+                        <td className="py-2 px-2.5 text-center">
+                          <span
+                            className={`inline-block px-1.5 py-0.5 rounded font-semibold ${
+                              editingIndex === idx
+                                ? "bg-amber-500/30 text-amber-900 dark:text-amber-200"
+                                : "bg-primary/10 text-primary"
+                            }`}
+                          >
+                            {item.cantidad}
+                          </span>
+                        </td>
+                        <td className="py-2 px-2.5 font-mono text-[11px]">
+                          {item.serie || "-"}
+                        </td>
+                        <td className="py-2 px-2.5 text-muted-foreground truncate max-w-[150px]">
+                          {item.observacion || "-"}
+                        </td>
+                        <td className="py-2 px-2.5 text-right">
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className={`size-6 ${
+                                editingIndex === idx
+                                  ? "text-amber-600 bg-amber-500/25 hover:bg-amber-500/35"
+                                  : "text-muted-foreground hover:text-amber-600 hover:bg-amber-500/10"
+                              }`}
+                              onClick={() => handleIniciarEditarItem(idx)}
+                              title="Editar ítem"
+                            >
+                              <Pencil className="size-3" />
+                            </Button>
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="size-6 text-destructive hover:bg-destructive/10"
+                              onClick={() => handleEliminarItem(idx)}
+                              title="Eliminar ítem"
+                            >
+                              <Trash2 className="size-3" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>

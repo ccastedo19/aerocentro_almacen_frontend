@@ -808,7 +808,7 @@ export function ModalAgregarPrestamo({
             </Button>
             <Button
               type="button"
-              className="bg-amber-600 text-white hover:bg-amber-700 dark:bg-amber-500 dark:hover:bg-amber-600"
+              variant="warning"
               disabled={isExchanging}
               onClick={handleConfirmExchange}
             >
