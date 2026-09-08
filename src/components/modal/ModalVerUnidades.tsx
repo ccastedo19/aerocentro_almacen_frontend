@@ -78,6 +78,7 @@ export function ModalVerUnidades({
   )
   const [editingPendingId, setEditingPendingId] = useState<string | null>(null)
   const [pendingUnits, setPendingUnits] = useState<UnidadPendiente[]>([])
+  const [modifiedUnits, setModifiedUnits] = useState<Record<string, UnidadCamposValues>>({})
   const [isSaving, setIsSaving] = useState(false)
   const [deletingUnidad, setDeletingUnidad] = useState<HerramientaUnidad | null>(
     null,
@@ -111,6 +112,7 @@ export function ModalVerUnidades({
     setEditingUnidad(null)
     setEditingPendingId(null)
     setPendingUnits([])
+    setModifiedUnits({})
     setUnidadCampos(unidadCamposVacia(marcas, ubicaciones))
     setUnidadErrors({})
     setDeleteError("")
@@ -124,7 +126,7 @@ export function ModalVerUnidades({
     setEditingPendingId(null)
   }
 
-  const handleGuardarUnidad = async () => {
+  const handleGuardarUnidad = () => {
     if (!herramienta) return
 
     const errors = validarUnidadCampos(unidadCampos)
@@ -160,57 +162,45 @@ export function ModalVerUnidades({
       return
     }
 
-    setIsSaving(true)
-
-    try {
-      if (editingUnidad) {
-        await actualizarUnidad(editingUnidad.id, unidadCampos)
-        toastExito("Unidad actualizada correctamente.")
-      }
-
-      setUnidadErrors({})
-      setEditingUnidad(null)
-      await loadUnidades()
-      onChanged()
-    } catch (error) {
-      setPageError(
-        error instanceof ApiError
-          ? error.errors.unidad?.[0] || error.message
-          : "No se pudo guardar la unidad.",
-      )
-    } finally {
-      setIsSaving(false)
-    }
+    // Guardar cambio de unidad existente de forma pendiente (resaltada en azul) sin cerrar el modal
+    setModifiedUnits((current) => ({
+      ...current,
+      [editingUnidad.id]: { ...unidadCampos },
+    }))
+    resetCampos()
   }
 
   const handleGuardarCambios = async () => {
-    if (!herramienta || pendingUnits.length === 0) return
+    const totalPendientes = pendingUnits.length + Object.keys(modifiedUnits).length
+    if (!herramienta || totalPendientes === 0) return
 
     setIsSaving(true)
     setPageError("")
-    let savedCount = 0
 
     try {
+      // 1. Guardar nuevas unidades pendientes
       for (const unidad of pendingUnits) {
         await crearUnidad({
           herramienta_id: herramienta.id,
           ...unidad.values,
         })
-        savedCount += 1
-        setPendingUnits((current) =>
-          current.filter((item) => item.id !== unidad.id),
-        )
       }
 
+      // 2. Guardar modificaciones de unidades existentes
+      for (const [id, values] of Object.entries(modifiedUnits)) {
+        await actualizarUnidad(id, values)
+      }
+
+      setPendingUnits([])
+      setModifiedUnits({})
       resetCampos()
       await loadUnidades()
       onChanged()
-      toastExito("Unidades guardadas correctamente.")
+      toastExito("Cambios guardados correctamente.")
+      onOpenChange(false)
     } catch (error) {
-      if (savedCount > 0) {
-        await loadUnidades()
-        onChanged()
-      }
+      await loadUnidades()
+      onChanged()
 
       setPageError(
         error instanceof ApiError
@@ -231,6 +221,11 @@ export function ModalVerUnidades({
     try {
       await eliminarUnidad(deletingUnidad.id)
       if (editingUnidad?.id === deletingUnidad.id) resetCampos()
+      setModifiedUnits((current) => {
+        const next = { ...current }
+        delete next[deletingUnidad.id]
+        return next
+      })
       setDeletingUnidad(null)
       await loadUnidades()
       onChanged()
@@ -334,27 +329,60 @@ export function ModalVerUnidades({
                     pending: true,
                     editing: editingPendingId === unidad.id,
                   })),
-                  ...unidades.map((unidad) => ({
-                    id: unidad.id,
-                    herramienta: herramienta?.nombre ?? "—",
-                    marca: unidad.marca?.nombre ?? "—",
-                    ubicacion:
-                      ubicaciones.find((item) => item.id === unidad.ubicacion_id)
-                        ?.ruta
-                      ?? unidad.ubicacion?.nombre
-                      ?? "—",
-                    colores: etiquetaColoresUnidad(
-                      unidad.color_primario,
-                      unidad.color_secundario,
-                    ),
-                    tamano: unidad.tamano ?? "",
-                    calibracion:
-                      toDateInput(unidad.proxima_calibracion) ||
-                      toDateInput(unidad.fecha_calibracion),
-                    estado: etiquetaEstadoUnidad(unidad.estado),
-                    disableActions: unidad.estado === UNIDAD_ESTADO_PRESTADA,
-                    editing: editingUnidad?.id === unidad.id,
-                  })),
+                  ...unidades.map((unidad) => {
+                    const modificado = modifiedUnits[unidad.id]
+                    if (modificado) {
+                      return {
+                        id: unidad.id,
+                        herramienta: herramienta?.nombre ?? "—",
+                        marca:
+                          marcas.find((item) => item.id === modificado.marca_id)
+                            ?.nombre ?? unidad.marca?.nombre ?? "—",
+                        ubicacion:
+                          ubicaciones.find(
+                            (item) => item.id === modificado.ubicacion_id,
+                          )?.ruta ?? unidad.ubicacion?.nombre ?? "—",
+                        colores: etiquetaColoresUnidad(
+                          modificado.color_primario === SIN_COLOR
+                            ? null
+                            : modificado.color_primario,
+                          modificado.color_secundario === SIN_COLOR
+                            ? null
+                            : modificado.color_secundario,
+                        ),
+                        tamano: modificado.tamano ?? "",
+                        calibracion:
+                          modificado.proxima_calibracion ||
+                          modificado.fecha_calibracion,
+                        estado: "Modificado (Pendiente de guardar)",
+                        pending: true,
+                        disableActions: unidad.estado === UNIDAD_ESTADO_PRESTADA,
+                        editing: editingUnidad?.id === unidad.id,
+                      }
+                    }
+
+                    return {
+                      id: unidad.id,
+                      herramienta: herramienta?.nombre ?? "—",
+                      marca: unidad.marca?.nombre ?? "—",
+                      ubicacion:
+                        ubicaciones.find((item) => item.id === unidad.ubicacion_id)
+                          ?.ruta
+                        ?? unidad.ubicacion?.nombre
+                        ?? "—",
+                      colores: etiquetaColoresUnidad(
+                        unidad.color_primario,
+                        unidad.color_secundario,
+                      ),
+                      tamano: unidad.tamano ?? "",
+                      calibracion:
+                        toDateInput(unidad.proxima_calibracion) ||
+                        toDateInput(unidad.fecha_calibracion),
+                      estado: etiquetaEstadoUnidad(unidad.estado),
+                      disableActions: unidad.estado === UNIDAD_ESTADO_PRESTADA,
+                      editing: editingUnidad?.id === unidad.id,
+                    }
+                  }),
                 ]}
                 emptyMessage="Esta herramienta aún no tiene unidades."
                 onEdit={(id) => {
@@ -372,19 +400,25 @@ export function ModalVerUnidades({
 
                   setEditingUnidad(unidad)
                   setEditingPendingId(null)
-                  setUnidadCampos({
-                    marca_id: unidad.marca_id,
-                    ubicacion_id: unidad.ubicacion_id,
-                    color_primario: unidad.color_primario ?? SIN_COLOR,
-                    color_secundario: unidad.color_secundario ?? SIN_COLOR,
-                    tamano: unidad.tamano ?? "",
-                    requiere_calibracion: Boolean(
-                      unidad.fecha_calibracion || unidad.proxima_calibracion,
-                    ),
-                    fecha_calibracion: toDateInput(unidad.fecha_calibracion),
-                    proxima_calibracion: toDateInput(unidad.proxima_calibracion),
-                    observaciones: "",
-                  })
+
+                  const modificado = modifiedUnits[unidad.id]
+                  if (modificado) {
+                    setUnidadCampos({ ...modificado })
+                  } else {
+                    setUnidadCampos({
+                      marca_id: unidad.marca_id,
+                      ubicacion_id: unidad.ubicacion_id,
+                      color_primario: unidad.color_primario ?? SIN_COLOR,
+                      color_secundario: unidad.color_secundario ?? SIN_COLOR,
+                      tamano: unidad.tamano ?? "",
+                      requiere_calibracion: Boolean(
+                        unidad.fecha_calibracion || unidad.proxima_calibracion,
+                      ),
+                      fecha_calibracion: toDateInput(unidad.fecha_calibracion),
+                      proxima_calibracion: toDateInput(unidad.proxima_calibracion),
+                      observaciones: "",
+                    })
+                  }
                   setUnidadErrors({})
                 }}
                 onDelete={(id) => {
@@ -418,13 +452,22 @@ export function ModalVerUnidades({
             <Button
               type="button"
               variant="info"
-              disabled={isSaving || pendingUnits.length === 0}
+              disabled={
+                isSaving ||
+                pendingUnits.length + Object.keys(modifiedUnits).length === 0
+              }
               onClick={() => void handleGuardarCambios()}
             >
               <Save data-icon="inline-start" />
               {isSaving
                 ? "Guardando..."
-                : `Guardar cambios${pendingUnits.length > 0 ? ` (${pendingUnits.length})` : ""}`}
+                : `Guardar cambios${
+                    pendingUnits.length + Object.keys(modifiedUnits).length > 0
+                      ? ` (${
+                          pendingUnits.length + Object.keys(modifiedUnits).length
+                        })`
+                      : ""
+                  }`}
             </Button>
           </DialogFooter>
         </DialogContent>

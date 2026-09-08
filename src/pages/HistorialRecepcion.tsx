@@ -28,11 +28,20 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { ApiError } from "@/lib/api"
 import {
   badgeColorEstadoOrden,
+  badgeColorTipoOrden,
   eliminarOrdenRecepcion,
   etiquetaEstadoOrden,
+  etiquetaTipoOrden,
   finalizarOrdenRecepcion,
   listarOrdenesRecepcion,
   obtenerPdfOrden,
@@ -42,13 +51,15 @@ import {
 } from "@/lib/ordenes-recepcion"
 import { toastExito } from "@/lib/toast"
 
-type TabFiltro = "todos" | "borradores" | "finalizados"
+type TabFiltro = "Todos" | "Borradores" | "Finalizados"
+type TipoFiltro = "Todos" | "motor" | "ndt"
 
 export const HistorialRecepcion = () => {
   const navigate = useNavigate()
   const [ordenes, setOrdenes] = useState<OrdenRecepcion[]>([])
   const [search, setSearch] = useState("")
-  const [tabFiltro, setTabFiltro] = useState<TabFiltro>("todos")
+  const [tabFiltro, setTabFiltro] = useState<TabFiltro>("Todos")
+  const [tipoFiltro, setTipoFiltro] = useState<TipoFiltro>("Todos")
   const [isLoading, setIsLoading] = useState(true)
   const [pageError, setPageError] = useState("")
 
@@ -97,10 +108,14 @@ export const HistorialRecepcion = () => {
   // Filtrado
   const filteredOrdenes = useMemo(() => {
     return ordenes.filter((o) => {
-      if (tabFiltro === "borradores" && o.estado !== ORDEN_ESTADO_BORRADOR) {
+      if (tipoFiltro !== "Todos") {
+        const itemTipo = o.tipo || "motor"
+        if (itemTipo !== tipoFiltro) return false
+      }
+      if (tabFiltro === "Borradores" && o.estado !== ORDEN_ESTADO_BORRADOR) {
         return false
       }
-      if (tabFiltro === "finalizados" && o.estado !== ORDEN_ESTADO_FINALIZADO) {
+      if (tabFiltro === "Finalizados" && o.estado !== ORDEN_ESTADO_FINALIZADO) {
         return false
       }
 
@@ -114,7 +129,7 @@ export const HistorialRecepcion = () => {
 
       return matchNumero || matchCliente || matchModelo || matchSerie || matchMatricula
     })
-  }, [ordenes, tabFiltro, search])
+  }, [ordenes, tipoFiltro, tabFiltro, search])
 
   // Acciones
   const handleVerPdf = async (orden: OrdenRecepcion) => {
@@ -192,6 +207,19 @@ export const HistorialRecepcion = () => {
         ),
       }),
 
+      columnHelper.accessor("tipo", {
+        header: "Tipo",
+        cell: ({ row }) => (
+          <span
+            className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold border ${badgeColorTipoOrden(
+              row.original.tipo,
+            )}`}
+          >
+            {etiquetaTipoOrden(row.original.tipo)}
+          </span>
+        ),
+      }),
+
       columnHelper.accessor("created_at", {
         header: "Fecha",
         cell: ({ row }) => (
@@ -242,11 +270,6 @@ export const HistorialRecepcion = () => {
                 {o.matricula && (
                   <span>&bull; Matrícula: <strong className="text-foreground">{o.matricula}</strong></span>
                 )}
-                {o.bimotor && (
-                  <span className="bg-primary/10 text-primary px-1.5 py-0.2 rounded text-[10px] font-semibold">
-                    BiMotor ({o.motor_posicion || "ambos"})
-                  </span>
-                )}
               </div>
             </div>
           )
@@ -278,13 +301,13 @@ export const HistorialRecepcion = () => {
 
       columnHelper.display({
         id: "acciones",
-        header: "",
+        header: "Acciones",
         cell: ({ row }) => {
           const orden = row.original
           const esBorrador = orden.estado === ORDEN_ESTADO_BORRADOR
 
           return (
-            <div className="flex justify-end">
+            <div className="flex justify-center">
               <DropdownMenu>
                 <DropdownMenuTrigger
                   render={
@@ -371,7 +394,7 @@ export const HistorialRecepcion = () => {
             Historial de Recepción
           </h1>
           <p className="text-sm text-muted-foreground">
-            Consulta y gestiona todos los documentos de recepción emitidos.
+            Consulta y gestiona Todos los documentos de recepción emitidos.
           </p>
         </div>
 
@@ -390,48 +413,74 @@ export const HistorialRecepcion = () => {
       )}
 
       {/* Barra de Filtros y Búsqueda */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        {/* Tabs */}
+      <div className="space-y-3">
+        {/* Tabs Tipo */}
         <div className="flex w-fit flex-wrap rounded-lg border bg-muted/50 p-0.5">
           <Button
             type="button"
-            className="h-8 px-3 text-xs"
-            variant={tabFiltro === "todos" ? "default" : "ghost"}
-            onClick={() => setTabFiltro("todos")}
+            className="h-8 px-3 text-xs font-medium text-sm"
+            variant={tipoFiltro === "Todos" ? "default" : "ghost"}
+            onClick={() => setTipoFiltro("Todos")}
           >
             Todos ({ordenes.length})
           </Button>
           <Button
             type="button"
-            className="h-8 px-3 text-xs"
-            variant={tabFiltro === "borradores" ? "default" : "ghost"}
-            onClick={() => setTabFiltro("borradores")}
+            className="h-8 px-3 text-xs font-medium text-sm"
+            variant={tipoFiltro === "motor" ? "default" : "ghost"}
+            onClick={() => setTipoFiltro("motor")}
           >
-            Borradores (
-            {ordenes.filter((o) => o.estado === ORDEN_ESTADO_BORRADOR).length}
+            Motores (
+            {ordenes.filter((o) => (o.tipo || "motor") === "motor").length}
             )
           </Button>
           <Button
             type="button"
-            className="h-8 px-3 text-xs"
-            variant={tabFiltro === "finalizados" ? "default" : "ghost"}
-            onClick={() => setTabFiltro("finalizados")}
+            className={`h-8 px-3 text-xs font-medium text-sm ${tipoFiltro === "ndt"
+              ? "default"
+              : "ghost"
+              }`}
+            variant={tipoFiltro === "ndt" ? "default" : "ghost"}
+            onClick={() => setTipoFiltro("ndt")}
           >
-            Finalizados (
-            {ordenes.filter((o) => o.estado === ORDEN_ESTADO_FINALIZADO).length}
-            )
+            NDT ({ordenes.filter((o) => o.tipo === "ndt").length})
           </Button>
         </div>
 
-        {/* Input Buscador */}
-        <div className="relative w-full sm:w-80">
-          <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Buscar por N° orden, cliente, serie..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="h-9 pl-9 text-xs"
-          />
+        {/* Fila inferior: Buscador a la izquierda y Filtro de Estado a la derecha */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          {/* Input Buscador */}
+          <div className="relative w-full sm:w-80">
+            <Search className="absolute left-2.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Buscar por N° orden, cliente, serie..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-9 pl-9 text-xs"
+            />
+          </div>
+
+          {/* Select Estado */}
+          <Select
+            value={tabFiltro}
+            onValueChange={(val) => {
+              if (val == null) return
+              setTabFiltro(val as TabFiltro)
+            }}
+          >
+            <SelectTrigger
+              id="recepcion-estado"
+              className="h-9 w-full sm:w-44 text-xs bg-background"
+              aria-label="Filtrar por estado"
+            >
+              <SelectValue placeholder="Todos" />
+            </SelectTrigger>
+            <SelectContent alignItemWithTrigger={false}>
+              <SelectItem value="Todos">Todos</SelectItem>
+              <SelectItem value="Finalizados">Finalizados</SelectItem>
+              <SelectItem value="Borradores">Borradores</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
       </div>
 

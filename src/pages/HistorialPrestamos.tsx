@@ -37,7 +37,7 @@ export const HistorialPrestamos = () => {
           <div className="flex w-fit flex-wrap rounded-lg border bg-muted/50 p-0.5">
             <Button
               type="button"
-              className="h-9 px-4"
+              className="h-8 px-3 text-xs font-medium text-sm"
               variant={tab === "general" ? "default" : "ghost"}
               onClick={() => {
                 if (tab === "general") return
@@ -49,7 +49,7 @@ export const HistorialPrestamos = () => {
             </Button>
             <Button
               type="button"
-              className="h-9 px-4"
+              className="h-8 px-3 text-xs font-medium text-sm"
               variant={tab === "mecanico" ? "default" : "ghost"}
               onClick={() => {
                 if (tab === "mecanico") return
@@ -61,7 +61,7 @@ export const HistorialPrestamos = () => {
             </Button>
             <Button
               type="button"
-              className="h-9 px-4"
+              className="h-8 px-3 text-xs font-medium text-sm"
               variant={tab === "herramienta" ? "default" : "ghost"}
               onClick={() => {
                 if (tab === "herramienta") return

@@ -10,7 +10,9 @@ import {
 } from "@/components/ui/dialog"
 import {
   badgeColorEstadoOrden,
+  badgeColorTipoOrden,
   etiquetaEstadoOrden,
+  etiquetaTipoOrden,
   ORDEN_ESTADO_BORRADOR,
   type OrdenRecepcion,
 } from "@/lib/ordenes-recepcion"
@@ -56,13 +58,22 @@ export const ModalDetalleOrdenRecepcion = ({
               </DialogDescription>
             </div>
 
-            <span
-              className={`text-xs px-2.5 py-1 rounded-full font-semibold border w-fit ${badgeColorEstadoOrden(
-                orden.estado,
-              )}`}
-            >
-              {etiquetaEstadoOrden(orden.estado)}
-            </span>
+            <div className="flex items-center gap-2">
+              <span
+                className={`text-xs px-2.5 py-1 rounded-full font-semibold border w-fit ${badgeColorTipoOrden(
+                  orden.tipo,
+                )}`}
+              >
+                {etiquetaTipoOrden(orden.tipo)}
+              </span>
+              <span
+                className={`text-xs px-2.5 py-1 rounded-full font-semibold border w-fit ${badgeColorEstadoOrden(
+                  orden.estado,
+                )}`}
+              >
+                {etiquetaEstadoOrden(orden.estado)}
+              </span>
+            </div>
           </div>
         </DialogHeader>
 
@@ -109,14 +120,6 @@ export const ModalDetalleOrdenRecepcion = ({
                 <div>
                   <span className="text-muted-foreground">Matrícula: </span>
                   <strong>{orden.matricula || "-"}</strong>
-                </div>
-                <div className="col-span-2">
-                  <span className="text-muted-foreground">Configuración: </span>
-                  <span>
-                    {orden.bimotor
-                      ? `BiMotor (Motor ${orden.motor_posicion || "no especificado"})`
-                      : "Monomotor"}
-                  </span>
                 </div>
               </div>
             </div>

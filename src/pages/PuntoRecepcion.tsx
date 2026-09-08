@@ -52,9 +52,10 @@ import {
   obtenerOrdenRecepcion,
   MARCAS_MOTOR,
   ORDEN_ESTADO_FINALIZADO,
-  POSICIONES_MOTOR,
+  TIPOS_RECEPCION,
   type ItemFormValues,
   type OrdenRecepcion,
+  type TipoRecepcion,
 } from "@/lib/ordenes-recepcion"
 import { toastExito } from "@/lib/toast"
 
@@ -80,13 +81,12 @@ export const PuntoRecepcion = () => {
   const [isLoadingDraft, setIsLoadingDraft] = useState(false)
 
   // Form principal
+  const [tipo, setTipo] = useState<TipoRecepcion>("motor")
   const [clienteId, setClienteId] = useState("")
   const [marca, setMarca] = useState("continental")
   const [modelo, setModelo] = useState("")
   const [serie, setSerie] = useState("")
   const [matricula, setMatricula] = useState("")
-  const [bimotor, setBimotor] = useState(false)
-  const [motorPosicion, setMotorPosicion] = useState("izquierdo")
 
   // Modal nuevo cliente
   const [isClientModalOpen, setIsClientModalOpen] = useState(false)
@@ -139,13 +139,12 @@ export const PuntoRecepcion = () => {
         }
 
         setEditingOrden(orden)
+        setTipo((orden.tipo as TipoRecepcion) || "motor")
         setClienteId(orden.cliente_id)
         setMarca(orden.marca || "continental")
         setModelo(orden.modelo || "")
         setSerie(orden.serie || "")
         setMatricula(orden.matricula || "")
-        setBimotor(Boolean(orden.bimotor))
-        setMotorPosicion(orden.motor_posicion || "izquierdo")
         setItems(
           orden.items?.map((item) => ({
             part_number: item.part_number || "",
@@ -228,11 +227,6 @@ export const PuntoRecepcion = () => {
     if (e) e.preventDefault()
     setItemInputError("")
 
-    if (!nuevoItem.part_number.trim()) {
-      setItemInputError("El Part Number (P/N) es obligatorio.")
-      return
-    }
-
     if (!nuevoItem.componente.trim()) {
       setItemInputError("El nombre o descripción del componente es obligatorio.")
       return
@@ -240,11 +234,6 @@ export const PuntoRecepcion = () => {
 
     if (nuevoItem.cantidad < 1) {
       setItemInputError("La cantidad debe ser al menos 1.")
-      return
-    }
-
-    if (!nuevoItem.serie.trim()) {
-      setItemInputError("El número de serie (S/N) es obligatorio.")
       return
     }
 
@@ -267,13 +256,12 @@ export const PuntoRecepcion = () => {
   }
 
   const handleLimpiarFormulario = () => {
+    setTipo("motor")
     setClienteId("")
     setMarca("continental")
     setModelo("")
     setSerie("")
     setMatricula("")
-    setBimotor(false)
-    setMotorPosicion("izquierdo")
     setItems([])
     setNewItem({ ...itemVacio })
     setItemInputError("")
@@ -306,10 +294,6 @@ export const PuntoRecepcion = () => {
       setFormError("La matrícula de la aeronave es obligatoria.")
       return false
     }
-    if (bimotor && !motorPosicion) {
-      setFormError("Debes seleccionar la posición del motor para aeronave bimotor.")
-      return false
-    }
     if (items.length === 0) {
       setFormError("Debes agregar al menos un componente a la lista antes de guardar.")
       return false
@@ -325,13 +309,12 @@ export const PuntoRecepcion = () => {
       setFormError("")
 
       const payload = {
+        tipo,
         cliente_id: clienteId,
         marca,
         modelo: modelo.trim(),
         serie: serie.trim(),
         matricula: matricula.trim(),
-        bimotor,
-        motor_posicion: bimotor ? motorPosicion : null,
         items,
       }
 
@@ -363,13 +346,12 @@ export const PuntoRecepcion = () => {
       setFormError("")
 
       const payload = {
+        tipo,
         cliente_id: clienteId,
         marca,
         modelo: modelo.trim(),
         serie: serie.trim(),
         matricula: matricula.trim(),
-        bimotor,
-        motor_posicion: bimotor ? motorPosicion : null,
         items,
       }
 
@@ -476,21 +458,50 @@ export const PuntoRecepcion = () => {
       <div className="flex flex-col gap-6">
         {/* Sección Superior: Datos de Recepción */}
         <Card className="border-primary/20 shadow-sm">
-          <CardHeader className="pb-1">
-            <CardTitle className="text-base font-semibold flex items-center gap-2">
-              <Plane className="size-4 text-primary" />
-              Datos de Recepción
-            </CardTitle>
-            <CardDescription className="text-xs">
-              Información del cliente y especificaciones del motor/aeronave.
-            </CardDescription>
+          <CardHeader className="pb-3 border-b">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div>
+                <CardTitle className="text-base font-semibold flex items-center gap-2">
+                  <Plane className="size-4 text-primary" />
+                  Datos de Recepción
+                </CardTitle>
+                <CardDescription className="text-xs">
+                  Información del cliente y especificaciones del motor o componentes.
+                </CardDescription>
+              </div>
+
+              {/* Selector de Tipo de Recepción */}
+              <div className="flex items-center gap-1.5 bg-muted/60 p-1 rounded-lg border w-fit">
+
+                {TIPOS_RECEPCION.map((t) => {
+                  const isSelected = tipo === t.value
+                  return (
+                    <Button
+                      key={t.value}
+                      type="button"
+                      size="sm"
+                      variant={isSelected ? "default" : "ghost"}
+                      className={`h-7 px-3 text-xs font-semibold transition-all ${isSelected
+                        ? t.value === "ndt"
+                          ? "default"
+                          : "shadow-sm"
+                        : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      onClick={() => setTipo(t.value as TipoRecepcion)}
+                    >
+                      {t.label}
+                    </Button>
+                  )
+                })}
+              </div>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {/* Cliente */}
               <div className="space-y-1.5 sm:col-span-2 lg:col-span-2">
                 <div className="flex items-center justify-between mb-0">
-                  <label className="text-xs font-semibold text-black dark:text-white relative top-[3px]">
+                  <label className="text-sm font-medium text-black dark:text-white relative top-[3px]">
                     Cliente *
                   </label>
                   <Button
@@ -516,15 +527,15 @@ export const PuntoRecepcion = () => {
               </div>
 
               {/* Marca */}
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-black dark:text-white">
+              <div className="space-y-4 relative top-[3px]">
+                <label className="text-sm font-medium text-black dark:text-white">
                   Marca del Motor *
                 </label>
                 <Select
                   value={marca}
                   onValueChange={(val) => setMarca(val ?? "continental")}
                 >
-                  <SelectTrigger className="h-9 w-full">
+                  <SelectTrigger className="!h-9 w-full">
                     <SelectValue>
                       {marca === "lycoming" ? "Lycoming" : "Continental"}
                     </SelectValue>
@@ -541,7 +552,7 @@ export const PuntoRecepcion = () => {
 
               {/* Modelo */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-black dark:text-white">
+                <label className="text-sm font-medium text-black dark:text-white">
                   Modelo *
                 </label>
                 <Input
@@ -554,8 +565,8 @@ export const PuntoRecepcion = () => {
 
               {/* Serie */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-black dark:text-white">
-                  Número de Serie (S/N) *
+                <label className="text-sm font-medium text-black dark:text-white">
+                  Número de Serie *
                 </label>
                 <Input
                   placeholder="Ej: L-28491-36A"
@@ -567,7 +578,7 @@ export const PuntoRecepcion = () => {
 
               {/* Matrícula */}
               <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-black dark:text-white">
+                <label className="text-sm font-medium text-black dark:text-white">
                   Matrícula de Aeronave *
                 </label>
                 <Input
@@ -576,52 +587,6 @@ export const PuntoRecepcion = () => {
                   onChange={(e) => setMatricula(e.target.value)}
                   className="h-9"
                 />
-              </div>
-
-              {/* BiMotor & Posición */}
-              <div className="sm:col-span-2 lg:col-span-3 rounded-lg border bg-muted/30 p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div className="flex items-center gap-3">
-                  <input
-                    type="checkbox"
-                    id="bimotor-check"
-                    checked={bimotor}
-                    onChange={(e) => setBimotor(e.target.checked)}
-                    className="size-4 rounded border-gray-300 text-primary focus:ring-primary cursor-pointer"
-                  />
-                  <div>
-                    <label htmlFor="bimotor-check" className="text-xs font-semibold text-black dark:text-white block cursor-pointer">
-                      ¿Es BiMotor?
-                    </label>
-                    <span className="text-[11px] text-muted-foreground">
-                      Aeronave con configuración de dos motores
-                    </span>
-                  </div>
-                </div>
-
-                {bimotor && (
-                  <div className="flex items-center gap-2 self-start sm:self-auto">
-                    <label className="text-xs font-semibold text-black dark:text-white whitespace-nowrap">
-                      Posición del Motor:
-                    </label>
-                    <Select
-                      value={motorPosicion}
-                      onValueChange={(val) => setMotorPosicion(val ?? "izquierdo")}
-                    >
-                      <SelectTrigger className="h-8 w-44 text-xs">
-                        <SelectValue>
-                          {motorPosicion === "derecho" ? "Motor Derecho" : "Motor Izquierdo"}
-                        </SelectValue>
-                      </SelectTrigger>
-                      <SelectContent>
-                        {POSICIONES_MOTOR.map((p) => (
-                          <SelectItem key={p.value} value={p.value} className="text-xs">
-                            {p.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
               </div>
             </div>
           </CardContent>
@@ -654,8 +619,8 @@ export const PuntoRecepcion = () => {
               >
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
                   <div className="sm:col-span-3">
-                    <label className="text-xs font-semibold text-black dark:text-white block mb-1">
-                      Part Number (P/N) *
+                    <label className="text-sm font-medium text-black dark:text-white block mb-1 relative top-[5px] relative top-[5px]">
+                      Part Number
                     </label>
                     <Input
                       placeholder="Ej: 646275-1"
@@ -666,12 +631,12 @@ export const PuntoRecepcion = () => {
                           part_number: e.target.value,
                         }))
                       }
-                      className="h-8 text-xs"
+                      className="h-9 text-xs"
                     />
                   </div>
 
                   <div className="sm:col-span-4">
-                    <label className="text-xs font-semibold text-black dark:text-white block mb-1">
+                    <label className="text-sm font-medium text-black dark:text-white block mb-1 relative top-[5px]">
                       Componente / Descripción *
                     </label>
                     <Input
@@ -683,12 +648,12 @@ export const PuntoRecepcion = () => {
                           componente: e.target.value,
                         }))
                       }
-                      className="h-8 text-xs"
+                      className="h-9 text-xs"
                     />
                   </div>
 
                   <div className="sm:col-span-2">
-                    <label className="text-xs font-semibold text-black dark:text-white block mb-1">
+                    <label className="text-sm font-medium text-black dark:text-white block mb-1 relative top-[5px]">
                       Cant. *
                     </label>
                     <Input
@@ -701,13 +666,13 @@ export const PuntoRecepcion = () => {
                           cantidad: parseInt(e.target.value) || 1,
                         }))
                       }
-                      className="h-8 text-xs text-center"
+                      className="h-9 text-xs text-center"
                     />
                   </div>
 
                   <div className="sm:col-span-3">
-                    <label className="text-xs font-semibold text-black dark:text-white block mb-1">
-                      N° Serie (S/N) *
+                    <label className="text-sm font-medium text-black dark:text-white block mb-1 relative top-[5px]">
+                      N° Serie
                     </label>
                     <Input
                       placeholder="Ej: SN-9402"
@@ -718,12 +683,12 @@ export const PuntoRecepcion = () => {
                           serie: e.target.value,
                         }))
                       }
-                      className="h-8 text-xs"
+                      className="h-9 text-xs"
                     />
                   </div>
 
                   <div className="sm:col-span-9">
-                    <label className="text-xs font-semibold text-black dark:text-white block mb-1">
+                    <label className="text-sm font-medium text-black dark:text-white block mb-1 relative top-[5px]">
                       Observación / Estado
                     </label>
                     <Input
@@ -735,18 +700,17 @@ export const PuntoRecepcion = () => {
                           observacion: e.target.value,
                         }))
                       }
-                      className="h-8 text-xs"
+                      className="h-9 text-xs"
                     />
                   </div>
 
                   <div className="sm:col-span-3 flex items-end">
                     <Button
                       type="submit"
-                      size="sm"
-                      className="w-full h-8 gap-1.5 text-xs font-semibold"
+                      className="w-full h-8 gap-1.5 text-sm font-semibold "
                     >
-                      <Plus className="size-3.5" />
-                      Agregar Ítem
+                      <Plus className="size-4.5" />
+                      Agregar Item
                     </Button>
                   </div>
                 </div>
@@ -850,7 +814,7 @@ export const PuntoRecepcion = () => {
             <Button
               type="button"
               variant="outline"
-              size="sm"
+              size="lg"
               onClick={handleLimpiarFormulario}
               disabled={isSavingDraft || isFinalizing}
               className="gap-1.5"
@@ -863,7 +827,7 @@ export const PuntoRecepcion = () => {
               <Button
                 type="button"
                 variant="secondary"
-                size="sm"
+                size="lg"
                 onClick={handleGuardarBorrador}
                 disabled={isSavingDraft || isFinalizing}
                 className="gap-1.5"
@@ -879,7 +843,7 @@ export const PuntoRecepcion = () => {
               <Button
                 type="button"
                 variant="default"
-                size="sm"
+                size="lg"
                 onClick={handleFinalizarYGenerarPdf}
                 disabled={isSavingDraft || isFinalizing}
                 className="gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-medium"

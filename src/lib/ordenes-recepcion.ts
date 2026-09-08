@@ -4,6 +4,13 @@ export const ORDEN_ESTADO_ELIMINADO = 0
 export const ORDEN_ESTADO_BORRADOR = 1
 export const ORDEN_ESTADO_FINALIZADO = 2
 
+export const TIPOS_RECEPCION = [
+  { value: "motor", label: "Motores" },
+  { value: "ndt", label: "NDT" },
+] as const
+
+export type TipoRecepcion = (typeof TIPOS_RECEPCION)[number]["value"]
+
 export const MARCAS_MOTOR = [
   { value: "continental", label: "Continental" },
   { value: "lycoming", label: "Lycoming" },
@@ -33,12 +40,11 @@ export type OrdenRecepcionItem = {
 export type OrdenRecepcion = {
   id: string
   numero_orden: string
+  tipo: TipoRecepcion | string
   marca: MarcaMotor | string
   modelo: string
   serie: string
   matricula: string | null
-  bimotor: boolean
-  motor_posicion: PosicionMotor | string | null
   cliente_id: string
   estado: number
   usuario_id: string
@@ -68,12 +74,11 @@ export type ItemFormValues = {
 }
 
 export type OrdenRecepcionFormValues = {
+  tipo?: TipoRecepcion | string
   marca: string
   modelo: string
   serie: string
   matricula: string
-  bimotor: boolean
-  motor_posicion: string | null
   cliente_id: string
   items: ItemFormValues[]
 }
@@ -121,12 +126,26 @@ export function badgeColorEstadoOrden(estado: number) {
   }
 }
 
+export function etiquetaTipoOrden(tipo?: string) {
+  if (tipo === "ndt") return "NDT"
+  return "Motores"
+}
+
+export function badgeColorTipoOrden(tipo?: string) {
+  if (tipo === "ndt") {
+    return "bg-purple-500/10 text-purple-700 border-purple-500/30 dark:bg-purple-500/20 dark:text-purple-300"
+  }
+  return "bg-sky-500/10 text-sky-700 border-sky-500/30 dark:bg-sky-500/20 dark:text-sky-300"
+}
+
 export async function listarOrdenesRecepcion(filtros?: {
   buscar?: string
+  tipo?: string
   estado?: number
 }) {
   const query = new URLSearchParams()
   if (filtros?.buscar) query.set("buscar", filtros.buscar)
+  if (filtros?.tipo) query.set("tipo", filtros.tipo)
   if (filtros?.estado !== undefined) query.set("estado", String(filtros.estado))
 
   return listarTodosPaginados<OrdenRecepcion>(RESOURCE, query)
