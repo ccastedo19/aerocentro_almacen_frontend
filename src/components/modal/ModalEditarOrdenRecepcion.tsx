@@ -1,5 +1,14 @@
 import { useEffect, useState } from "react"
-import { Plus, Trash2, Wrench } from "lucide-react"
+import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
+  Pencil,
+  Plus,
+  Trash2,
+  Wrench,
+  X,
+} from "lucide-react"
 
 import { ClienteCombobox } from "@/components/form/ClienteCombobox"
 import { AlertError } from "@/components/ui/alert-error"
@@ -63,6 +72,8 @@ export const ModalEditarOrdenRecepcion = ({
   const [matricula, setMatricula] = useState("")
 
   const [items, setItems] = useState<ItemFormValues[]>([])
+  const [editingIndex, setEditingIndex] = useState<number | null>(null)
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc" | null>(null)
   const [nuevoItem, setNewItem] = useState<ItemFormValues>({ ...itemVacio })
   const [itemInputError, setItemInputError] = useState("")
 
@@ -78,14 +89,17 @@ export const ModalEditarOrdenRecepcion = ({
       setSerie(orden.serie || "")
       setMatricula(orden.matricula || "")
       setItems(
-        orden.items?.map((it) => ({
+        orden.items?.map((it, idx) => ({
           part_number: it.part_number || "",
           componente: it.componente || "",
           cantidad: it.cantidad || 1,
           serie: it.serie || "",
           observacion: it.observacion || "",
+          _order: idx,
         })) || [],
       )
+      setEditingIndex(null)
+      setSortDirection(null)
       setNewItem({ ...itemVacio })
       setError("")
       setItemInputError("")
@@ -106,21 +120,84 @@ export const ModalEditarOrdenRecepcion = ({
       return
     }
 
-    setItems((prev) => [
-      ...prev,
-      {
-        part_number: nuevoItem.part_number.trim(),
-        componente: nuevoItem.componente.trim(),
-        cantidad: Number(nuevoItem.cantidad) || 1,
-        serie: nuevoItem.serie.trim(),
-        observacion: nuevoItem.observacion.trim(),
-      },
-    ])
+    const nextOrder =
+      items.length > 0
+        ? Math.max(...items.map((i) => i._order ?? 0)) + 1
+        : 0
+
+    const itemData: ItemFormValues = {
+      part_number: nuevoItem.part_number.trim(),
+      componente: nuevoItem.componente.trim(),
+      cantidad: Number(nuevoItem.cantidad) || 1,
+      serie: nuevoItem.serie.trim(),
+      observacion: nuevoItem.observacion.trim(),
+      _order:
+        editingIndex !== null
+          ? (items[editingIndex]._order ?? nextOrder)
+          : nextOrder,
+    }
+
+    if (editingIndex !== null) {
+      setItems((prev) =>
+        prev.map((it, idx) => (idx === editingIndex ? itemData : it)),
+      )
+      setEditingIndex(null)
+    } else {
+      setItems((prev) => [...prev, itemData])
+    }
+
     setNewItem({ ...itemVacio })
   }
 
+  const handleIniciarEditarItem = (index: number) => {
+    setEditingIndex(index)
+    setNewItem({ ...items[index] })
+    setItemInputError("")
+  }
+
   const handleEliminarItem = (index: number) => {
+    if (editingIndex === index) {
+      setEditingIndex(null)
+      setNewItem({ ...itemVacio })
+    } else if (editingIndex !== null && index < editingIndex) {
+      setEditingIndex(editingIndex - 1)
+    }
     setItems((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const handleOrdenarPorComponente = () => {
+    if (items.length <= 1) return
+
+    let nextDirection: "asc" | "desc" | null = null
+    if (sortDirection === null) {
+      nextDirection = "asc"
+    } else if (sortDirection === "asc") {
+      nextDirection = "desc"
+    } else {
+      nextDirection = null
+    }
+
+    setSortDirection(nextDirection)
+
+    setItems((prev) => {
+      const cloned = [...prev]
+      if (nextDirection === "asc") {
+        return cloned.sort((a, b) => {
+          const compA = a.componente.trim().toLowerCase()
+          const compB = b.componente.trim().toLowerCase()
+          return compA.localeCompare(compB, "es", { sensitivity: "base" })
+        })
+      } else if (nextDirection === "desc") {
+        return cloned.sort((a, b) => {
+          const compA = a.componente.trim().toLowerCase()
+          const compB = b.componente.trim().toLowerCase()
+          return compB.localeCompare(compA, "es", { sensitivity: "base" })
+        })
+      } else {
+        // Vuelve al estado predeterminado / original
+        return cloned.sort((a, b) => (a._order ?? 0) - (b._order ?? 0))
+      }
+    })
   }
 
   const handleGuardar = async () => {
@@ -361,11 +438,38 @@ export const ModalEditarOrdenRecepcion = ({
                   className="h-8 text-xs"
                 />
               </div>
-              <div className="sm:col-span-3">
-                <Button type="submit" size="sm" className="w-full h-8 text-xs gap-1">
-                  <Plus className="size-3.5" />
-                  Agregar
-                </Button>
+              <div className="sm:col-span-3 flex items-center">
+                {editingIndex !== null ? (
+                  <div className="flex items-center gap-1 w-full">
+                    <Button
+                      type="submit"
+                      size="sm"
+                      className="flex-1 h-8 text-xs gap-1 bg-amber-500 hover:bg-amber-600 text-white font-semibold shadow-sm"
+                    >
+                      <Pencil className="size-3" />
+                      Actualizar
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-8 px-2 text-xs shrink-0"
+                      onClick={() => {
+                        setEditingIndex(null)
+                        setNewItem({ ...itemVacio })
+                        setItemInputError("")
+                      }}
+                      title="Cancelar edición"
+                    >
+                      <X className="size-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Button type="submit" size="sm" className="w-full h-8 text-xs gap-1">
+                    <Plus className="size-3.5" />
+                    Agregar
+                  </Button>
+                )}
               </div>
 
               {itemInputError && (
@@ -382,16 +486,45 @@ export const ModalEditarOrdenRecepcion = ({
                   <tr>
                     <th className="py-2 px-2.5 w-8 text-center">#</th>
                     <th className="py-2 px-2.5">P/N</th>
-                    <th className="py-2 px-2.5">Componente</th>
+                    <th className="py-2 px-2.5">
+                      <button
+                        type="button"
+                        onClick={handleOrdenarPorComponente}
+                        className="inline-flex items-center gap-1.5 font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none group"
+                        title={
+                          sortDirection === "asc"
+                            ? "Orden A-Z (clic para ordenar Z-A)"
+                            : sortDirection === "desc"
+                            ? "Orden Z-A (clic para volver al orden predeterminado)"
+                            : "Orden predeterminado (clic para ordenar A-Z)"
+                        }
+                      >
+                        <span>Componente</span>
+                        {sortDirection === "asc" ? (
+                          <ArrowUp className="size-3.5 text-primary" />
+                        ) : sortDirection === "desc" ? (
+                          <ArrowDown className="size-3.5 text-primary" />
+                        ) : (
+                          <ArrowUpDown className="size-3.5 text-muted-foreground/60 group-hover:text-foreground transition-colors" />
+                        )}
+                      </button>
+                    </th>
                     <th className="py-2 px-2.5 text-center w-12">Cant.</th>
                     <th className="py-2 px-2.5">Serie</th>
                     <th className="py-2 px-2.5">Observación</th>
-                    <th className="py-2 px-2.5 text-right w-10"></th>
+                    <th className="py-2 px-2.5 text-right w-14"></th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border">
                   {items.map((item, idx) => (
-                    <tr key={idx} className="hover:bg-muted/30">
+                    <tr
+                      key={idx}
+                      className={`transition-colors ${
+                        editingIndex === idx
+                          ? "bg-amber-500/20 border-l-4 border-l-amber-500 text-amber-950 dark:text-amber-100 font-medium"
+                          : "hover:bg-muted/30"
+                      }`}
+                    >
                       <td className="py-2 px-2.5 text-center font-semibold text-muted-foreground">
                         {idx + 1}
                       </td>
@@ -399,7 +532,17 @@ export const ModalEditarOrdenRecepcion = ({
                         {item.part_number || "-"}
                       </td>
                       <td className="py-2 px-2.5 font-medium">{item.componente}</td>
-                      <td className="py-2 px-2.5 text-center">{item.cantidad}</td>
+                      <td className="py-2 px-2.5 text-center">
+                        <span
+                          className={`inline-block px-1.5 py-0.5 rounded font-semibold ${
+                            editingIndex === idx
+                              ? "bg-amber-500/30 text-amber-900 dark:text-amber-200"
+                              : "bg-primary/10 text-primary"
+                          }`}
+                        >
+                          {item.cantidad}
+                        </span>
+                      </td>
                       <td className="py-2 px-2.5 font-mono text-[11px]">
                         {item.serie || "-"}
                       </td>
@@ -407,15 +550,32 @@ export const ModalEditarOrdenRecepcion = ({
                         {item.observacion || "-"}
                       </td>
                       <td className="py-2 px-2.5 text-right">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon"
-                          className="size-6 text-destructive hover:bg-destructive/10"
-                          onClick={() => handleEliminarItem(idx)}
-                        >
-                          <Trash2 className="size-3" />
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className={`size-6 ${
+                              editingIndex === idx
+                                ? "text-amber-600 bg-amber-500/25 hover:bg-amber-500/35"
+                                : "text-muted-foreground hover:text-amber-600 hover:bg-amber-500/10"
+                            }`}
+                            onClick={() => handleIniciarEditarItem(idx)}
+                            title="Editar ítem"
+                          >
+                            <Pencil className="size-3" />
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="size-6 text-destructive hover:bg-destructive/10"
+                            onClick={() => handleEliminarItem(idx)}
+                            title="Eliminar ítem"
+                          >
+                            <Trash2 className="size-3" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}

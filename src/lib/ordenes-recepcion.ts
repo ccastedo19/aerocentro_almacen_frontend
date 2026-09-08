@@ -71,6 +71,7 @@ export type ItemFormValues = {
   cantidad: number
   serie: string
   observacion: string
+  _order?: number
 }
 
 export type OrdenRecepcionFormValues = {

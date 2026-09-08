@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useState } from "react"
 import {
+  ArrowDown,
+  ArrowUp,
+  ArrowUpDown,
   FileCheck2,
   FileText,
   History,
@@ -94,8 +97,10 @@ export const PuntoRecepcion = () => {
   const [clientFormError, setClientFormError] = useState("")
   const [clientFieldErrors, setClientFieldErrors] = useState<ClienteFieldErrors>({})
 
-  // Lista de items
+  // Lista de items, edición y ordenación
   const [items, setItems] = useState<ItemFormValues[]>([])
+  const [editingIndex, setEditingIndex] = useState<number | null>(null)
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc" | null>(null)
 
   // Item en edición/creación rápida
   const [nuevoItem, setNewItem] = useState<ItemFormValues>({ ...itemVacio })
@@ -146,14 +151,17 @@ export const PuntoRecepcion = () => {
         setSerie(orden.serie || "")
         setMatricula(orden.matricula || "")
         setItems(
-          orden.items?.map((item) => ({
+          orden.items?.map((item, idx) => ({
             part_number: item.part_number || "",
             componente: item.componente || "",
             cantidad: item.cantidad || 1,
             serie: item.serie || "",
             observacion: item.observacion || "",
+            _order: idx,
           })) || [],
         )
+        setEditingIndex(null)
+        setSortDirection(null)
       })
       .catch((err) => {
         if (cancelled) return
@@ -237,22 +245,84 @@ export const PuntoRecepcion = () => {
       return
     }
 
-    setItems((prev) => [
-      ...prev,
-      {
-        part_number: nuevoItem.part_number.trim(),
-        componente: nuevoItem.componente.trim(),
-        cantidad: Number(nuevoItem.cantidad) || 1,
-        serie: nuevoItem.serie.trim(),
-        observacion: nuevoItem.observacion.trim(),
-      },
-    ])
+    const nextOrder =
+      items.length > 0
+        ? Math.max(...items.map((i) => i._order ?? 0)) + 1
+        : 0
+
+    const itemData: ItemFormValues = {
+      part_number: nuevoItem.part_number.trim(),
+      componente: nuevoItem.componente.trim(),
+      cantidad: Number(nuevoItem.cantidad) || 1,
+      serie: nuevoItem.serie.trim(),
+      observacion: nuevoItem.observacion.trim(),
+      _order:
+        editingIndex !== null
+          ? (items[editingIndex]._order ?? nextOrder)
+          : nextOrder,
+    }
+
+    if (editingIndex !== null) {
+      setItems((prev) =>
+        prev.map((it, idx) => (idx === editingIndex ? itemData : it)),
+      )
+      setEditingIndex(null)
+    } else {
+      setItems((prev) => [...prev, itemData])
+    }
 
     setNewItem({ ...itemVacio })
   }
 
+  const handleIniciarEditarItem = (index: number) => {
+    setEditingIndex(index)
+    setNewItem({ ...items[index] })
+    setItemInputError("")
+  }
+
   const handleEliminarItem = (index: number) => {
+    if (editingIndex === index) {
+      setEditingIndex(null)
+      setNewItem({ ...itemVacio })
+    } else if (editingIndex !== null && index < editingIndex) {
+      setEditingIndex(editingIndex - 1)
+    }
     setItems((prev) => prev.filter((_, i) => i !== index))
+  }
+
+  const handleOrdenarPorComponente = () => {
+    if (items.length <= 1) return
+
+    let nextDirection: "asc" | "desc" | null = null
+    if (sortDirection === null) {
+      nextDirection = "asc"
+    } else if (sortDirection === "asc") {
+      nextDirection = "desc"
+    } else {
+      nextDirection = null
+    }
+
+    setSortDirection(nextDirection)
+
+    setItems((prev) => {
+      const cloned = [...prev]
+      if (nextDirection === "asc") {
+        return cloned.sort((a, b) => {
+          const compA = a.componente.trim().toLowerCase()
+          const compB = b.componente.trim().toLowerCase()
+          return compA.localeCompare(compB, "es", { sensitivity: "base" })
+        })
+      } else if (nextDirection === "desc") {
+        return cloned.sort((a, b) => {
+          const compA = a.componente.trim().toLowerCase()
+          const compB = b.componente.trim().toLowerCase()
+          return compB.localeCompare(compA, "es", { sensitivity: "base" })
+        })
+      } else {
+        // Vuelve al estado predeterminado / original
+        return cloned.sort((a, b) => (a._order ?? 0) - (b._order ?? 0))
+      }
+    })
   }
 
   const handleLimpiarFormulario = () => {
@@ -263,6 +333,8 @@ export const PuntoRecepcion = () => {
     setSerie("")
     setMatricula("")
     setItems([])
+    setEditingIndex(null)
+    setSortDirection(null)
     setNewItem({ ...itemVacio })
     setItemInputError("")
     setFormError("")
@@ -705,13 +777,40 @@ export const PuntoRecepcion = () => {
                   </div>
 
                   <div className="sm:col-span-3 flex items-end">
-                    <Button
-                      type="submit"
-                      className="w-full h-8 gap-1.5 text-sm font-semibold "
-                    >
-                      <Plus className="size-4.5" />
-                      Agregar Item
-                    </Button>
+                    {editingIndex !== null ? (
+                      <div className="flex items-center gap-1.5 w-full">
+                        <Button
+                          type="submit"
+                          variant="warning"
+                          className="flex-1 h-9 gap-1.5 text-sm font-semibold text-white shadow-sm"
+                        >
+                          <Pencil className="size-3.5" />
+                          Actualizar Item
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-9 px-2.5 text-sm shrink-0"
+                          onClick={() => {
+                            setEditingIndex(null)
+                            setNewItem({ ...itemVacio })
+                            setItemInputError("")
+                          }}
+                          title="Cancelar edición"
+                        >
+                          <X className="size-3.5" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <Button
+                        type="submit"
+                        className="w-full h-9 gap-1.5 text-sm font-semibold"
+                      >
+                        <Plus className="size-4.5" />
+                        Agregar Item
+                      </Button>
+                    )}
                   </div>
                 </div>
 
@@ -728,13 +827,35 @@ export const PuntoRecepcion = () => {
                   <table className="w-full text-left text-xs border-collapse">
                     <thead className="bg-muted/70 sticky top-0 border-b font-semibold text-muted-foreground">
                       <tr>
-                        <th className="py-2.5 px-3 w-10 text-center">#</th>
-                        <th className="py-2.5 px-3">Part Number</th>
-                        <th className="py-2.5 px-3">Componente</th>
-                        <th className="py-2.5 px-3 text-center w-16">Cant.</th>
-                        <th className="py-2.5 px-3">Serie</th>
-                        <th className="py-2.5 px-3">Observación</th>
-                        <th className="py-2.5 px-3 text-right w-12"></th>
+                        <th className="py-2.5 px-3 w-10 text-center text-sm">N°</th>
+                        <th className="py-2.5 px-3 text-sm">Part Number</th>
+                        <th className="py-2.5 px-3 text-sm">
+                          <button
+                            type="button"
+                            onClick={handleOrdenarPorComponente}
+                            className="inline-flex items-center gap-1.5 font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none group"
+                            title={
+                              sortDirection === "asc"
+                                ? "Orden A-Z (clic para ordenar Z-A)"
+                                : sortDirection === "desc"
+                                  ? "Orden Z-A (clic para volver al orden predeterminado)"
+                                  : "Orden predeterminado (clic para ordenar A-Z)"
+                            }
+                          >
+                            <span>Componente</span>
+                            {sortDirection === "asc" ? (
+                              <ArrowUp className="size-3.5 text-primary" />
+                            ) : sortDirection === "desc" ? (
+                              <ArrowDown className="size-3.5 text-primary" />
+                            ) : (
+                              <ArrowUpDown className="size-3.5 text-muted-foreground/60 group-hover:text-foreground transition-colors" />
+                            )}
+                          </button>
+                        </th>
+                        <th className="py-2.5 px-3 text-center w-16 text-sm">Cant.</th>
+                        <th className="py-2.5 px-3 text-sm">Serie</th>
+                        <th className="py-2.5 px-3 text-sm">Observación</th>
+                        <th className="py-2.5 px-3 text-right w-16 text-sm"></th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border">
@@ -742,7 +863,7 @@ export const PuntoRecepcion = () => {
                         <tr>
                           <td
                             colSpan={7}
-                            className="py-8 text-center text-muted-foreground"
+                            className="py-8 text-center text-muted-foreground text-sm"
                           >
                             <div className="flex flex-col items-center justify-center gap-1.5">
                               <FileText className="size-8 text-muted-foreground/40" />
@@ -759,45 +880,68 @@ export const PuntoRecepcion = () => {
                         items.map((item, idx) => (
                           <tr
                             key={idx}
-                            className="hover:bg-muted/30 transition-colors"
+                            className={`transition-colors ${editingIndex === idx
+                              ? "bg-amber-500/20 text-sm border-l-4 border-l-amber-500 dark:text-amber-100 font-medium"
+                              : "hover:bg-muted/30"
+                              }`}
                           >
-                            <td className="py-2.5 px-3 text-center font-semibold text-muted-foreground">
+                            <td className="py-2.5 px-3 text-center text-sm font-semibold text-muted-foreground">
                               {idx + 1}
                             </td>
-                            <td className="py-2.5 px-3 font-mono text-[11px]">
+                            <td className="py-2.5 px-3 text-sm font-mono">
                               {item.part_number || (
-                                <span className="text-muted-foreground/60">-</span>
+                                <span className="text-sm">-</span>
                               )}
                             </td>
-                            <td className="py-2.5 px-3 font-medium text-foreground">
+                            <td className="py-2.5 px-3 font-medium text-sm text-foreground">
                               {item.componente}
                             </td>
-                            <td className="py-2.5 px-3 text-center font-semibold">
-                              <span className="inline-block bg-primary/10 text-primary px-2 py-0.5 rounded">
+                            <td className="py-2.5 px-3 text-center text-sm font-semibold">
+                              <span
+                                className={`inline-block px-2 py-0.5 rounded ${editingIndex === idx
+                                  ? "bg-amber-500/30 text-amber-900 dark:text-amber-200"
+                                  : "bg-primary/10 text-primary"
+                                  }`}
+                              >
                                 {item.cantidad}
                               </span>
                             </td>
-                            <td className="py-2.5 px-3 font-mono text-[11px]">
+                            <td className="py-2.5 px-3 font-mono text-sm">
                               {item.serie || (
                                 <span className="text-muted-foreground/60">-</span>
                               )}
                             </td>
-                            <td className="py-2.5 px-3 text-muted-foreground max-w-[200px] truncate">
+                            <td className="py-2.5 px-3 text-muted-foreground text-sm max-w-[200px] truncate">
                               {item.observacion || (
                                 <span className="text-muted-foreground/60">-</span>
                               )}
                             </td>
-                            <td className="py-2.5 px-3 text-right">
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                size="icon"
-                                className="size-7 text-destructive hover:bg-destructive/10"
-                                onClick={() => handleEliminarItem(idx)}
-                                title="Eliminar ítem"
-                              >
-                                <Trash2 className="size-3.5" />
-                              </Button>
+                            <td className="py-2.5 px-3 text-sm text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <Button
+                                  type="button"
+                                  variant="warning"
+                                  size="icon"
+                                  className={`size-7 ${editingIndex === idx
+                                    ? "text-amber-600 bg-amber-500/25 hover:bg-amber-500/35"
+                                    : "text-muted-foreground hover:text-amber-600 hover:bg-amber-500/10"
+                                    }`}
+                                  onClick={() => handleIniciarEditarItem(idx)}
+                                  title="Editar ítem"
+                                >
+                                  <Pencil className="size-3.5" />
+                                </Button>
+                                <Button
+                                  type="button"
+                                  variant="destructive"
+                                  size="icon"
+                                  className="size-7 text-destructive hover:bg-destructive/10"
+                                  onClick={() => handleEliminarItem(idx)}
+                                  title="Eliminar ítem"
+                                >
+                                  <Trash2 className="size-3.5" />
+                                </Button>
+                              </div>
                             </td>
                           </tr>
                         ))
@@ -842,7 +986,7 @@ export const PuntoRecepcion = () => {
 
               <Button
                 type="button"
-                variant="default"
+                variant="success"
                 size="lg"
                 onClick={handleFinalizarYGenerarPdf}
                 disabled={isSavingDraft || isFinalizing}
