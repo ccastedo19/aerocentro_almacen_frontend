@@ -889,10 +889,10 @@ export const PuntoRecepcion = () => {
                           >
                             <div className="flex flex-col items-center justify-center gap-1.5 h-full">
                               <FileText className="size-8 text-muted-foreground/40" />
-                              <p className="text-xs">
+                              <p className="text-[14px]">
                                 No se han agregado componentes aún.
                               </p>
-                              <p className="text-[11px] text-muted-foreground/70">
+                              <p className="text-[12px] text-muted-foreground/70">
                                 Usa el formulario superior para añadir partes recibidas.
                               </p>
                             </div>
