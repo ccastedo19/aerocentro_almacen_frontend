@@ -162,34 +162,36 @@ export const PuntoPrestamos = () => {
     void loadViewLoans(mecanicoId)
   }
 
-  const openAddLoan = async (mecanicoId: string) => {
+  const openAddLoan = useCallback((mecanicoId: string) => {
     setAddMechanicId(mecanicoId)
     setAddError("")
 
-    // Si no tenemos unidades precargadas, mostramos el estado de carga
-    if (availableUnits.length === 0 && loansInUse.length === 0) {
+    const needsLoading = availableUnits.length === 0 && loansInUse.length === 0
+    if (needsLoading) {
       setIsLoadingUnits(true)
     }
 
-    try {
-      const [unidades, combinadasActivas, enUso] = await Promise.all([
-        listarUnidadesDisponibles(),
-        listarCombinadasActivas(),
-        listarHerramientasEnUso(),
-      ])
-      setAvailableUnits(unidades)
-      setCombinadas(combinadasActivas)
-      setLoansInUse(enUso)
-    } catch (error) {
-      setAddError(
-        error instanceof ApiError
-          ? error.message
-          : "No se pudieron cargar las unidades disponibles.",
-      )
-    } finally {
-      setIsLoadingUnits(false)
-    }
-  }
+    void Promise.all([
+      listarUnidadesDisponibles(),
+      listarCombinadasActivas(),
+      listarHerramientasEnUso(),
+    ])
+      .then(([unidades, combinadasActivas, enUso]) => {
+        setAvailableUnits(unidades)
+        setCombinadas(combinadasActivas)
+        setLoansInUse(enUso)
+      })
+      .catch((error) => {
+        setAddError(
+          error instanceof ApiError
+            ? error.message
+            : "No se pudieron cargar las unidades disponibles.",
+        )
+      })
+      .finally(() => {
+        setIsLoadingUnits(false)
+      })
+  }, [availableUnits.length, loansInUse.length])
 
   const openGeneralTools = async () => {
     setIsGeneralToolsOpen(true)

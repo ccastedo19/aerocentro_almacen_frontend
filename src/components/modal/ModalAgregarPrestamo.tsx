@@ -47,7 +47,7 @@ import {
   type UnidadPrestamo,
 } from "@/lib/prestamos"
 
-type Filtro = "todas" | "en_uso" | "combinadas" | "seleccionadas"
+type Filtro = "todas" | "en_uso" | "combinadas"
 
 type ModalAgregarPrestamoProps = {
   open: boolean
@@ -171,7 +171,7 @@ const PrestamoEnUsoItemRow = memo(function PrestamoEnUsoItemRow({
             <p className="text-[11px] text-muted-foreground leading-tight">Lo tiene</p>
             <p className="truncate font-semibold text-foreground leading-tight">
               {item.mechanicName}
-              {item.mechanicArea ? ` (${item.mechanicArea})` : ""}
+
             </p>
           </div>
         </div>
@@ -250,6 +250,7 @@ export function ModalAgregarPrestamo({
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [exchangeTarget, setExchangeTarget] = useState<PrestamoEnUso | null>(null)
   const [isExchanging, setIsExchanging] = useState(false)
+  const [displayLimit, setDisplayLimit] = useState(40)
 
   // Congelar valores durante la animación de cierre para evitar parpadeos
   const displayedMechanic = useClosingSnapshot(open, mechanic)
@@ -271,8 +272,20 @@ export function ModalAgregarPrestamo({
       setFiltro("todas")
       setSelectedIds([])
       setExchangeTarget(null)
+      setDisplayLimit(40)
     }
   }, [open])
+
+  useEffect(() => {
+    setDisplayLimit(40)
+  }, [filtro, deferredSearch, deferredFiltros])
+
+  const handleScrollList = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget
+    if (scrollHeight - scrollTop - clientHeight < 250) {
+      setDisplayLimit((prev) => prev + 40)
+    }
+  }, [])
 
   // Conjunto Set de IDs seleccionados para búsqueda O(1) instantánea
   const selectedSet = useMemo(() => new Set(selectedIds), [selectedIds])
@@ -284,6 +297,14 @@ export function ModalAgregarPrestamo({
       .filter((u): u is UnidadPrestamo => Boolean(u))
     return [...displayedAvailableUnits, ...unidadesPrestadas]
   }, [displayedAvailableUnits, displayedLoansInUse])
+
+  // Lista de unidades seleccionadas para mostrar en el panel lateral derecho
+  const selectedUnidades = useMemo(() => {
+    const map = new Map(todasLasUnidades.map((u) => [u.id, u]))
+    return selectedIds
+      .map((id) => map.get(id))
+      .filter((u): u is UnidadPrestamo => Boolean(u))
+  }, [selectedIds, todasLasUnidades])
 
   // Opciones únicas para las sugerencias de los comboboxes
   const opcionesColor = useMemo(
@@ -334,19 +355,16 @@ export function ModalAgregarPrestamo({
     if (filtro === "en_uso") return []
     return filtrarCombinadasPorBusqueda(displayedCombinadas, deferredSearch).filter((combinada) => {
       if (!combinadaDisponible(combinada, availableIds)) return false
-      if (filtro === "seleccionadas") {
-        return (combinada.unidades ?? []).some((u) => selectedSet.has(u.id))
-      }
       if (filtrosUnidadVacios(deferredFiltros)) return true
       return (combinada.unidades ?? []).some((unidad) =>
         unidadCoincideFiltros(unidad, deferredFiltros),
       )
     })
-  }, [availableIds, displayedCombinadas, deferredSearch, deferredFiltros, filtro, selectedSet])
+  }, [availableIds, displayedCombinadas, deferredSearch, deferredFiltros, filtro])
 
   // Filtrado de herramientas en uso (tanto de este mecánico como de otros)
   const filteredLoansInUse = useMemo(() => {
-    if (filtro === "combinadas" || filtro === "seleccionadas") {
+    if (filtro === "combinadas") {
       return []
     }
 
@@ -394,11 +412,8 @@ export function ModalAgregarPrestamo({
 
   const unidadesVisibles = useMemo(() => {
     if (filtro === "en_uso" || filtro === "combinadas") return []
-    if (filtro === "seleccionadas") {
-      return filteredUnits.filter((unidad) => selectedSet.has(unidad.id))
-    }
     return filteredUnits
-  }, [filtro, filteredUnits, selectedSet])
+  }, [filtro, filteredUnits])
 
   const hayResultados =
     unidadesVisibles.length > 0 ||
@@ -640,17 +655,6 @@ export function ModalAgregarPrestamo({
                   Solo combinadas
                 </Button>
 
-                <Button
-                  size="sm"
-                  variant={filtro === "seleccionadas" ? "success" : "outline"}
-                  aria-pressed={filtro === "seleccionadas"}
-                  disabled={disabledGeneral}
-                  onClick={() => setFiltro("seleccionadas")}
-                >
-                  <Check data-icon="inline-start" />
-                  Ver Seleccionadas
-                </Button>
-
                 {/* Botón para Limpiar los buscadores */}
                 <Button
                   size="sm"
@@ -666,79 +670,156 @@ export function ModalAgregarPrestamo({
                 </Button>
               </div>
 
-              <span className="text-sm text-muted-foreground">
-                {selectedIds.length} seleccionadas
+              <span className="text-sm font-medium text-muted-foreground">
+                {selectedIds.length} {selectedIds.length === 1 ? "seleccionada" : "seleccionadas"}
               </span>
             </div>
 
-            {displayedLoading ? (
-              <div className="flex flex-1 items-center justify-center rounded-xl border border-dashed py-16 text-center text-base text-muted-foreground">
-                Cargando herramientas...
+            {/* Layout principal dividido de 2 columnas: Lista a la izquierda | Seleccionadas a la derecha */}
+            <div className="flex min-h-0 flex-1 gap-4">
+              {/* Columna Izquierda: Listado de herramientas */}
+              <div className="flex min-w-0 flex-1 flex-col">
+                {displayedLoading ? (
+                  <div className="flex flex-1 items-center justify-center rounded-xl border border-dashed py-16 text-center text-base text-muted-foreground">
+                    Cargando herramientas...
+                  </div>
+                ) : hayResultados ? (
+                  <div
+                    className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1"
+                    onScroll={handleScrollList}
+                  >
+                    {/* Unidades disponibles en almacén */}
+                    {unidadesVisibles.slice(0, displayLimit).map((unidad) => (
+                      <UnidadItemRow
+                        key={unidad.id}
+                        unidad={unidad}
+                        isSelected={selectedSet.has(unidad.id)}
+                        disabled={disabledGeneral}
+                        onToggle={toggleUnit}
+                      />
+                    ))}
+
+                    {/* Herramientas en préstamo (en uso por este mecánico u otros mecánicos) */}
+                    {filteredLoansInUse.slice(0, displayLimit).map((loan) => (
+                      <PrestamoEnUsoItemRow
+                        key={loan.unidadId}
+                        item={loan}
+                        isCurrentMechanic={
+                          displayedMechanic ? loan.mechanicId === displayedMechanic.id : false
+                        }
+                        disabled={disabledGeneral}
+                        onExchange={handleExchangeClick}
+                      />
+                    ))}
+
+                    {/* Combinadas */}
+                    {filteredCombinadas.slice(0, displayLimit).map((combinada) => {
+                      const ids = unidadesIdsCombinada(combinada)
+                      const isSelected = ids.every((id) => selectedSet.has(id))
+
+                      return (
+                        <CombinadaItemRow
+                          key={combinada.id}
+                          combinada={combinada}
+                          isSelected={isSelected}
+                          disabled={disabledGeneral}
+                          onToggle={toggleCombinada}
+                        />
+                      )
+                    })}
+                  </div>
+                ) : (
+                  <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed py-16 text-center">
+                    <p className="text-lg font-medium">
+                      {filtro === "en_uso"
+                        ? "No hay herramientas prestadas que coincidan con la búsqueda"
+                        : filtro === "combinadas"
+                          ? "No hay combinadas disponibles para esta búsqueda"
+                          : "No hay herramientas que coincidan con la búsqueda"}
+                    </p>
+                    <p className="mt-2 text-base text-muted-foreground">
+                      {filtro === "en_uso"
+                        ? "No se encontraron herramientas en préstamo con otros mecánicos para este filtro."
+                        : filtro === "combinadas"
+                          ? "Una combinada solo aparece si todas sus unidades están libres. Prueba con “Ver todas”."
+                          : "Prueba con otro término de búsqueda o limpia los filtros."}
+                    </p>
+                  </div>
+                )}
               </div>
-            ) : hayResultados ? (
-              <div className="min-h-0 flex-1 space-y-3 overflow-y-auto pr-1">
-                {/* Unidades disponibles en almacén */}
-                {unidadesVisibles.map((unidad) => (
-                  <UnidadItemRow
-                    key={unidad.id}
-                    unidad={unidad}
-                    isSelected={selectedSet.has(unidad.id)}
-                    disabled={disabledGeneral}
-                    onToggle={toggleUnit}
-                  />
-                ))}
 
-                {/* Herramientas en préstamo (en uso por este mecánico u otros mecánicos) */}
-                {filteredLoansInUse.map((loan) => (
-                  <PrestamoEnUsoItemRow
-                    key={loan.unidadId}
-                    item={loan}
-                    isCurrentMechanic={
-                      displayedMechanic ? loan.mechanicId === displayedMechanic.id : false
-                    }
-                    disabled={disabledGeneral}
-                    onExchange={handleExchangeClick}
-                  />
-                ))}
+              {/* Panel Lateral Derecho: Herramientas Seleccionadas */}
+              <div className="flex w-72 shrink-0 flex-col rounded-xl border bg-card p-3.5 shadow-sm min-h-0 sm:w-80 lg:w-96">
+                <div className="flex items-center justify-between border-b pb-2.5">
+                  <div className="flex items-center gap-2">
+                    <div className="flex size-5 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <Check className="size-3" />
+                    </div>
+                    <h3 className="text-sm font-semibold text-foreground">
+                      Seleccionadas
+                    </h3>
+                    <span className="rounded-full bg-primary/15 px-2 py-0.5 text-xs  text-primary">
+                      {selectedIds.length}
+                    </span>
+                  </div>
 
-                {/* Combinadas */}
-                {filteredCombinadas.map((combinada) => {
-                  const ids = unidadesIdsCombinada(combinada)
-                  const isSelected = ids.every((id) => selectedSet.has(id))
-
-                  return (
-                    <CombinadaItemRow
-                      key={combinada.id}
-                      combinada={combinada}
-                      isSelected={isSelected}
+                  {selectedIds.length > 0 ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs text-muted-foreground hover:text-destructive"
                       disabled={disabledGeneral}
-                      onToggle={toggleCombinada}
-                    />
-                  )
-                })}
+                      onClick={() => setSelectedIds([])}
+                    >
+                      <RotateCcw className="mr-1 size-3" />
+                      Limpiar
+                    </Button>
+                  ) : null}
+                </div>
+
+                <div className="min-h-0 flex-1 overflow-y-auto py-2.5 space-y-2 pr-0.5">
+                  {selectedUnidades.length > 0 ? (
+                    selectedUnidades.map((unidad) => (
+                      <div
+                        key={unidad.id}
+                        className="group flex items-center justify-between gap-2.5 rounded-lg border bg-background p-2.5 transition-colors hover:border-destructive/40"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[13.5px] font-medium text-foreground">
+                            {nombreUnidad(unidad)}
+                          </p>
+                          <DetalleUnidadPrestamo
+                            unidad={unidad}
+                            className="mt-0.5 text-[12px]"
+                          />
+                        </div>
+
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="size-6 shrink-0 rounded-md text-muted-foreground opacity-70 hover:bg-destructive/10 hover:text-destructive group-hover:opacity-100"
+                          disabled={disabledGeneral}
+                          onClick={() => toggleUnit(unidad.id, false)}
+                        >
+                          <X className="size-3.5" />
+                          <span className="sr-only">Quitar</span>
+                        </Button>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="flex h-full flex-col items-center justify-center py-8 text-center text-muted-foreground">
+                      <Wrench className="mb-2 size-8 stroke-[1.5] text-muted-foreground/40" />
+                      <p className="text-sm font-medium">No hay herramientas seleccionadas</p>
+                      <p className="mt-1 max-w-[200px] text-[12px] text-muted-foreground/70">
+                        Selecciona las casillas a la izquierda para agregarlas a este préstamo.
+                      </p>
+                    </div>
+                  )}
+                </div>
               </div>
-            ) : (
-              <div className="flex flex-1 flex-col items-center justify-center rounded-xl border border-dashed py-16 text-center">
-                <p className="text-lg font-medium">
-                  {filtro === "seleccionadas"
-                    ? "No hay unidades seleccionadas"
-                    : filtro === "en_uso"
-                      ? "No hay herramientas prestadas que coincidan con la búsqueda"
-                      : filtro === "combinadas"
-                        ? "No hay combinadas disponibles para esta búsqueda"
-                        : "No hay herramientas que coincidan con la búsqueda"}
-                </p>
-                <p className="mt-2 text-base text-muted-foreground">
-                  {filtro === "seleccionadas"
-                    ? "Marca la casilla de las herramientas que desees incluir para ver tu selección aquí."
-                    : filtro === "en_uso"
-                      ? "No se encontraron herramientas en préstamo con otros mecánicos para este filtro."
-                      : filtro === "combinadas"
-                        ? "Una combinada solo aparece si todas sus unidades están libres. Prueba con “Ver todas”."
-                        : "Prueba con otro término de búsqueda o limpia los filtros."}
-                </p>
-              </div>
-            )}
+            </div>
           </div>
 
           <DialogFooter className="-mx-5 -mb-5 p-5 pt-2.5 pb-2.5 ">
