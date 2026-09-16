@@ -499,12 +499,6 @@ export function ModalAgregarPrestamo({
         <DialogContent
           className="flex h-[min(92vh,52rem)] w-[min(96vw,84rem)] max-w-none flex-col gap-4 overflow-hidden p-5 sm:max-w-none"
           showCloseButton={!disabledGeneral}
-          onPointerDownOutside={(e) => {
-            if (disabledGeneral) e.preventDefault()
-          }}
-          onEscapeKeyDown={(e) => {
-            if (disabledGeneral) e.preventDefault()
-          }}
         >
           <DialogHeader className="gap-2">
             <DialogTitle className="pr-10 text-[18px] font-semibold tracking-tight">
@@ -875,12 +869,6 @@ export function ModalAgregarPrestamo({
         <DialogContent
           className="max-w-md"
           showCloseButton={!isExchanging}
-          onPointerDownOutside={(e) => {
-            if (isExchanging) e.preventDefault()
-          }}
-          onEscapeKeyDown={(e) => {
-            if (isExchanging) e.preventDefault()
-          }}
         >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base font-semibold">
