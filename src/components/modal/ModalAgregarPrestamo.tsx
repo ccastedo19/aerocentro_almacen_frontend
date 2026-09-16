@@ -420,6 +420,11 @@ export function ModalAgregarPrestamo({
     filteredCombinadas.length > 0 ||
     filteredLoansInUse.length > 0
 
+  const isSearchingOrFiltering = Boolean(
+    deferredSearch.trim() || !filtrosUnidadVacios(deferredFiltros),
+  )
+  const effectiveLimit = isSearchingOrFiltering ? 500 : displayLimit
+
   // Reglas de deshabilitado
   const disabledGeneral = displayedSubmitting || isExchanging
   const disabledColor2 = disabledGeneral || !filtros.color1.trim()
@@ -469,6 +474,7 @@ export function ModalAgregarPrestamo({
       setSelectedIds((current) =>
         current.includes(target.unidadId) ? current : [...current, target.unidadId],
       )
+      setFiltro("todas")
       setExchangeTarget(null)
     } catch {
       // El error se gestiona en la vista
@@ -490,7 +496,16 @@ export function ModalAgregarPrestamo({
           onOpenChange(true)
         }}
       >
-        <DialogContent className="flex h-[min(92vh,52rem)] w-[min(96vw,84rem)] max-w-none flex-col gap-4 overflow-hidden p-5 sm:max-w-none">
+        <DialogContent
+          className="flex h-[min(92vh,52rem)] w-[min(96vw,84rem)] max-w-none flex-col gap-4 overflow-hidden p-5 sm:max-w-none"
+          showCloseButton={!disabledGeneral}
+          onPointerDownOutside={(e) => {
+            if (disabledGeneral) e.preventDefault()
+          }}
+          onEscapeKeyDown={(e) => {
+            if (disabledGeneral) e.preventDefault()
+          }}
+        >
           <DialogHeader className="gap-2">
             <DialogTitle className="pr-10 text-[18px] font-semibold tracking-tight">
               Agregar préstamo a “{displayedMechanic?.nombre_completo}”
@@ -689,7 +704,7 @@ export function ModalAgregarPrestamo({
                     onScroll={handleScrollList}
                   >
                     {/* Unidades disponibles en almacén */}
-                    {unidadesVisibles.slice(0, displayLimit).map((unidad) => (
+                    {unidadesVisibles.slice(0, effectiveLimit).map((unidad) => (
                       <UnidadItemRow
                         key={unidad.id}
                         unidad={unidad}
@@ -700,7 +715,7 @@ export function ModalAgregarPrestamo({
                     ))}
 
                     {/* Herramientas en préstamo (en uso por este mecánico u otros mecánicos) */}
-                    {filteredLoansInUse.slice(0, displayLimit).map((loan) => (
+                    {filteredLoansInUse.slice(0, effectiveLimit).map((loan) => (
                       <PrestamoEnUsoItemRow
                         key={loan.unidadId}
                         item={loan}
@@ -713,7 +728,7 @@ export function ModalAgregarPrestamo({
                     ))}
 
                     {/* Combinadas */}
-                    {filteredCombinadas.slice(0, displayLimit).map((combinada) => {
+                    {filteredCombinadas.slice(0, effectiveLimit).map((combinada) => {
                       const ids = unidadesIdsCombinada(combinada)
                       const isSelected = ids.every((id) => selectedSet.has(id))
 
@@ -857,7 +872,16 @@ export function ModalAgregarPrestamo({
           }
         }}
       >
-        <DialogContent className="max-w-md">
+        <DialogContent
+          className="max-w-md"
+          showCloseButton={!isExchanging}
+          onPointerDownOutside={(e) => {
+            if (isExchanging) e.preventDefault()
+          }}
+          onEscapeKeyDown={(e) => {
+            if (isExchanging) e.preventDefault()
+          }}
+        >
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-base font-semibold">
               <ArrowLeftRight className="size-5 text-amber-600 dark:text-amber-400" />
