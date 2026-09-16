@@ -120,14 +120,36 @@ export const HistorialRecepcion = () => {
       }
 
       if (!search.trim()) return true
-      const query = search.toLowerCase()
-      const matchNumero = o.numero_orden.toLowerCase().includes(query)
-      const matchCliente = o.cliente?.nombre_completo.toLowerCase().includes(query)
-      const matchModelo = o.modelo.toLowerCase().includes(query)
-      const matchSerie = o.serie.toLowerCase().includes(query)
-      const matchMatricula = o.matricula?.toLowerCase().includes(query)
+      const query = search.toLowerCase().trim()
+      const queryClean = query.replace(/[- ]/g, "")
 
-      return matchNumero || matchCliente || matchModelo || matchSerie || matchMatricula
+      const matchNumero = o.numero_orden?.toLowerCase().includes(query)
+      const matchCliente = o.cliente?.nombre_completo?.toLowerCase().includes(query)
+      const matchMarca = o.marca?.toLowerCase().includes(query)
+      const matchModelo = o.modelo?.toLowerCase().includes(query)
+      const matchSerie = o.serie?.toLowerCase().includes(query)
+
+      const matriculaRaw = o.matricula?.toLowerCase() ?? ""
+      const matchMatricula =
+        matriculaRaw.includes(query) ||
+        (queryClean.length > 0 && matriculaRaw.replace(/[- ]/g, "").includes(queryClean))
+
+      const matchItems = o.items?.some(
+        (item) =>
+          item.componente?.toLowerCase().includes(query) ||
+          item.part_number?.toLowerCase().includes(query) ||
+          item.serie?.toLowerCase().includes(query),
+      )
+
+      return (
+        matchNumero ||
+        matchCliente ||
+        matchMarca ||
+        matchModelo ||
+        matchSerie ||
+        matchMatricula ||
+        Boolean(matchItems)
+      )
     })
   }, [ordenes, tipoFiltro, tabFiltro, search])
 
@@ -488,7 +510,6 @@ export const HistorialRecepcion = () => {
       <DataTable
         columns={columns}
         data={filteredOrdenes}
-        search={search}
         pageSizeOptions={[10, 20, 50]}
         emptyMessage="No se encontraron documentos de recepción"
         emptyDescription="Registra un nuevo documento en el Punto de Recepción."
