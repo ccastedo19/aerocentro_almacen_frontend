@@ -19,6 +19,7 @@ import { Mecanicos } from "@/pages/Mecanicos";
 import { Clientes } from "@/pages/Clientes";
 import { PuntoRecepcion } from "@/pages/PuntoRecepcion";
 import { NotFound } from "@/pages/NotFound";
+import { Public_prestamos } from "@/pages/Public_prestamos";
 
 const pages = [
   { path: "inicio", element: <Inicio /> },
@@ -37,11 +38,19 @@ const pages = [
 
 export const router = createBrowserRouter([
   {
+    path: "public-prestamos",
+    element: <Public_prestamos />,
+  },
+  {
     element: <RequireGuest />,
     children: [
       {
         path: "/login",
         element: <Login />,
+      },
+      {
+        path: "/public-prestamos",
+        element: <Public_prestamos />,
       },
     ],
   },

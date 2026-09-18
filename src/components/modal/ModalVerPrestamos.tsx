@@ -30,10 +30,11 @@ type ModalVerPrestamosProps = {
   isSavingReturns?: boolean
   error?: string
   canAdd?: boolean
+  readOnly?: boolean
   onDismissError?: () => void
   onOpenChange: (open: boolean) => void
-  onAddTool: () => void
-  onSaveReturns: (detalleIds: string[]) => Promise<void>
+  onAddTool?: () => void
+  onSaveReturns?: (detalleIds: string[]) => Promise<void>
 }
 
 // Fila memoizada para cada préstamo activo
@@ -41,12 +42,14 @@ const LoanItemRow = memo(function LoanItemRow({
   loan,
   isPending,
   disabled,
+  readOnly = false,
   onToggle,
 }: {
   loan: DetallePrestamoActivo
   isPending: boolean
   disabled: boolean
-  onToggle: (loanId: string) => void
+  readOnly?: boolean
+  onToggle?: (loanId: string) => void
 }) {
   return (
     <div
@@ -82,31 +85,33 @@ const LoanItemRow = memo(function LoanItemRow({
         </div>
       </div>
 
-      {isPending ? (
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          className="sm:shrink-0 border-amber-500/40 text-amber-700 hover:bg-amber-500/15 hover:text-amber-800 dark:border-amber-400/40 dark:text-amber-300 dark:hover:bg-amber-400/15"
-          disabled={disabled}
-          onClick={() => onToggle(loan.id)}
-        >
-          <Undo2 data-icon="inline-start" className="size-3.5" />
-          Cancelar Devolución
-        </Button>
-      ) : (
-        <Button
-          type="button"
-          variant="destructive"
-          size="sm"
-          className="sm:shrink-0"
-          disabled={disabled}
-          onClick={() => onToggle(loan.id)}
-        >
-          <RotateCcw data-icon="inline-start" className="size-3.5" />
-          Devolver
-        </Button>
-      )}
+      {!readOnly && onToggle ? (
+        isPending ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="sm:shrink-0 border-amber-500/40 text-amber-700 hover:bg-amber-500/15 hover:text-amber-800 dark:border-amber-400/40 dark:text-amber-300 dark:hover:bg-amber-400/15"
+            disabled={disabled}
+            onClick={() => onToggle(loan.id)}
+          >
+            <Undo2 data-icon="inline-start" className="size-3.5" />
+            Cancelar Devolución
+          </Button>
+        ) : (
+          <Button
+            type="button"
+            variant="destructive"
+            size="sm"
+            className="sm:shrink-0"
+            disabled={disabled}
+            onClick={() => onToggle(loan.id)}
+          >
+            <RotateCcw data-icon="inline-start" className="size-3.5" />
+            Devolver
+          </Button>
+        )
+      ) : null}
     </div>
   )
 })
@@ -119,6 +124,7 @@ export function ModalVerPrestamos({
   isSavingReturns = false,
   error = "",
   canAdd = true,
+  readOnly = false,
   onDismissError,
   onOpenChange,
   onAddTool,
@@ -189,7 +195,7 @@ export function ModalVerPrestamos({
   }
 
   const handleSave = async () => {
-    if (pendingReturnIds.length === 0) return
+    if (pendingReturnIds.length === 0 || !onSaveReturns) return
 
     try {
       await onSaveReturns(pendingReturnIds)
@@ -242,7 +248,7 @@ export function ModalVerPrestamos({
         {/* Acciones superiores: Añadir herramienta y Devolver todas */}
         <div className="flex flex-wrap items-center justify-between gap-2 border-y py-2.5 text-sm">
           <div className="flex items-center gap-2">
-            {displayedCanAdd ? (
+            {!readOnly && displayedCanAdd ? (
               <Button
                 type="button"
                 variant="outline"
@@ -254,7 +260,7 @@ export function ModalVerPrestamos({
               </Button>
             ) : null}
 
-            {displayedLoans.length > 0 ? (
+            {!readOnly && displayedLoans.length > 0 ? (
               <Button
                 type="button"
                 variant={areAllLoansMarked ? "outline" : "destructive"}
@@ -299,6 +305,7 @@ export function ModalVerPrestamos({
                   loan={loan}
                   isPending={pendingReturnIds.includes(loan.id)}
                   disabled={isSavingReturns}
+                  readOnly={readOnly}
                   onToggle={handleToggleStageReturn}
                 />
               ))}
@@ -327,7 +334,7 @@ export function ModalVerPrestamos({
             <p className="mt-1 text-sm text-muted-foreground">
               Este mecánico no cuenta con ningún préstamo activo actualmente.
             </p>
-            {displayedCanAdd ? (
+            {!readOnly && displayedCanAdd ? (
               <Button
                 type="button"
                 className="mt-4"
@@ -344,7 +351,7 @@ export function ModalVerPrestamos({
         {/* Pie del modal */}
         <DialogFooter className="mt-auto flex flex-col gap-3 border-t pt-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2 text-xs text-muted-foreground">
-            {pendingReturnIds.length > 0 ? (
+            {!readOnly && pendingReturnIds.length > 0 ? (
               <div className="flex items-center gap-2">
                 <span className="flex size-2 rounded-full bg-amber-500 animate-pulse" />
                 <span className="font-medium text-foreground">
@@ -354,10 +361,12 @@ export function ModalVerPrestamos({
                     : "devoluciones pendientes por guardar"}
                 </span>
               </div>
-            ) : (
+            ) : !readOnly ? (
               <span>
                 Presiona &ldquo;Devolver&rdquo; en cada herramienta o &ldquo;Devolver todas&rdquo; para marcar las unidades a devolver.
               </span>
+            ) : (
+              <span>Consulta pública de herramientas prestadas al mecánico.</span>
             )}
           </div>
 
@@ -371,19 +380,21 @@ export function ModalVerPrestamos({
               Cerrar
             </Button>
 
-            <Button
-              type="button"
-              variant="success"
-              disabled={pendingReturnIds.length === 0 || isSavingReturns}
-              onClick={() => void handleSave()}
-            >
-              <Check data-icon="inline-start" className="size-4" />
-              {isSavingReturns
-                ? "Guardando devoluciones..."
-                : pendingReturnIds.length > 0
-                  ? `Guardar Devoluciones (${pendingReturnIds.length})`
-                  : "Guardar Devoluciones"}
-            </Button>
+            {!readOnly && (
+              <Button
+                type="button"
+                variant="success"
+                disabled={pendingReturnIds.length === 0 || isSavingReturns}
+                onClick={() => void handleSave()}
+              >
+                <Check data-icon="inline-start" className="size-4" />
+                {isSavingReturns
+                  ? "Guardando devoluciones..."
+                  : pendingReturnIds.length > 0
+                    ? `Guardar Devoluciones (${pendingReturnIds.length})`
+                    : "Guardar Devoluciones"}
+              </Button>
+            )}
           </div>
         </DialogFooter>
       </DialogContent>
