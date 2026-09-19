@@ -115,7 +115,7 @@ export function ModalVerPrestamosPublico({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="!flex !h-[92vh] !w-[94vw] !max-w-none flex-col gap-3 overflow-hidden p-3.5 dark bg-background text-foreground sm:!h-[95vh] sm:!w-[60vw] sm:gap-4">
+            <DialogContent className="!flex !h-[90vh] !w-[94vw] !max-w-none flex-col gap-3 overflow-hidden p-3.5 dark bg-background text-foreground sm:!h-[95vh] sm:!w-[60vw] sm:gap-4">
                 {/* Cabecera compacta del modal con info del mecánico */}
                 <DialogHeader className="space-y-2 border-b border-border/50 pb-3">
                     <div className="flex items-center gap-3 pr-6">
@@ -163,7 +163,7 @@ export function ModalVerPrestamosPublico({
                         <Input
                             id="search-public-loans"
                             className="h-8 sm:h-9 pr-8 pl-8 sm:pl-9 text-xs sm:text-sm rounded-lg"
-                            placeholder="Buscar herramienta por nombre, código..."
+                            placeholder="Buscar herramienta..."
                             value={search}
                             disabled={displayedLoading}
                             onChange={(event) => setSearch(event.target.value)}

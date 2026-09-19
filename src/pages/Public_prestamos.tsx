@@ -180,7 +180,7 @@ export const Public_prestamos = () => {
                             <Input
                                 id="public-search"
                                 className="h-9 w-full pl-9 pr-4 text-base max-sm:text-sm"
-                                placeholder="Buscar mecánico por nombre, apodo o cargo..."
+                                placeholder="Buscar mecánico..."
                                 value={search}
                                 onChange={(event) => setSearch(event.target.value)}
                             />
@@ -206,13 +206,13 @@ export const Public_prestamos = () => {
                             return (
                                 <Card
                                     key={mechanic.id}
-                                    className={`w-[90%] mx-auto sm:w-full h-full border-t-4 transition-all duration-200 hover:shadow-lg ${estilo.accent}`}
+                                    className={`w-[95%] mx-auto sm:w-full h-full border-t-4 transition-all duration-200 hover:shadow-lg ${estilo.accent}`}
                                 >
                                     <CardContent className="flex flex-col sm:flex-row items-center sm:items-start justify-between gap-2 sm:gap-3 px-2.5 pt-2.5 pb-0 sm:p-0 text-center sm:text-left">
 
                                         {/* Avatar */}
                                         <div className="pl-0 sm:pl-3.5  flex w-full sm:w-[35%] items-center justify-center sm:items-start sm:justify-between gap-2">
-                                            <Avatar className="size-14 sm:size-25 rounded-2xl border border-border/60 shadow-xs shrink-0 after:hidden">
+                                            <Avatar className="size-20 sm:size-25 rounded-2xl border border-border/60 shadow-xs shrink-0 after:hidden">
                                                 {mechanic.imagen ? (
                                                     <AvatarImage
                                                         src={optimizarImagenMecanico(mechanic.imagen)}
