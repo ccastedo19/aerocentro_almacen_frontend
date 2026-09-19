@@ -328,6 +328,12 @@ export async function listarPuntoPrestamos() {
   return respuesta.mecanicos
 }
 
+export async function listarPuntoPrestamosPublico() {
+  const respuesta = await api<{ mecanicos: MecanicoPunto[] }>("/api/publico/prestamos/punto")
+
+  return respuesta.mecanicos
+}
+
 export async function listarUnidadesDisponibles() {
   const respuesta = await api<{ unidades: UnidadPrestamo[] }>(
     "/api/prestamos/unidades-disponibles",
@@ -371,6 +377,14 @@ export async function listarHerramientasGeneral() {
 export async function listarPrestamosDeMecanico(mecanicoId: string) {
   const respuesta = await api<{ detalles: DetallePrestamoActivo[] }>(
     `/api/prestamos/mecanicos/${mecanicoId}`,
+  )
+
+  return respuesta.detalles
+}
+
+export async function listarPrestamosDeMecanicoPublico(mecanicoId: string) {
+  const respuesta = await api<{ detalles: DetallePrestamoActivo[] }>(
+    `/api/publico/prestamos/mecanicos/${mecanicoId}`,
   )
 
   return respuesta.detalles

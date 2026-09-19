@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button"
 import {
     Card,
     CardContent,
-    CardDescription,
     CardFooter,
     CardTitle,
 } from "@/components/ui/card"
@@ -18,8 +17,8 @@ import { ApiError } from "@/lib/api"
 import { getInicialesMecanico, optimizarImagenMecanico } from "@/lib/mecanicos"
 import {
     estiloTarjetaMecanico,
-    listarPrestamosDeMecanico,
-    listarPuntoPrestamos,
+    listarPrestamosDeMecanicoPublico,
+    listarPuntoPrestamosPublico,
     type DetallePrestamoActivo,
     type MecanicoPunto,
 } from "@/lib/prestamos"
@@ -43,7 +42,7 @@ export const Public_prestamos = () => {
     const loadMecanicos = useCallback(async (isSilent = false) => {
         if (!isSilent) setIsLoading(true)
         try {
-            const data = await listarPuntoPrestamos()
+            const data = await listarPuntoPrestamosPublico()
             setMecanicos(data)
         } catch (error) {
             if (!isSilent) {
@@ -62,7 +61,7 @@ export const Public_prestamos = () => {
     const loadViewLoans = useCallback(async (mecanicoId: string, isSilent = false) => {
         if (!isSilent) setIsLoadingView(true)
         try {
-            const data = await listarPrestamosDeMecanico(mecanicoId)
+            const data = await listarPrestamosDeMecanicoPublico(mecanicoId)
             setViewLoans(data)
         } catch (error) {
             if (!isSilent) {
@@ -229,7 +228,7 @@ export const Public_prestamos = () => {
                                         </div>
 
                                         {/* Información */}
-                                        <div className="w-full sm:w-[65%] space-y-0.5 sm:space-y-1 min-w-0">
+                                        <div className="w-full sm:w-[65%] space-y-0.5 sm:space-y-1 min-w-0 pl-2">
 
                                             {/* Préstamos */}
                                             <span className="inline-flex items-center gap-1 rounded-full bg-muted/80 px-2 py-0.5 sm:px-2.5 sm:py-1 text-[10px] sm:text-xs font-medium shrink-0 mb-2">
@@ -252,7 +251,7 @@ export const Public_prestamos = () => {
                                             </span>
 
                                             {/* Nombre */}
-                                            <CardTitle className="text-xs tracking-[0.4px] sm:text-lg font-semibold leading-tight  break-words">
+                                            <CardTitle className="text-xs tracking-[0.4px] sm:text-[15px] font-semibold leading-tight  break-words">
                                                 {mechanic.nombre_completo}
                                             </CardTitle>
 
@@ -261,18 +260,13 @@ export const Public_prestamos = () => {
                                                 {mechanic.apodo ? `“${mechanic.apodo}”` : "\u00a0"}
                                             </p>
 
-                                            {/* Cargo */}
-                                            <CardDescription className="max-sm:hidden">
-                                                {mechanic.cargo}
-                                            </CardDescription>
-
                                         </div>
                                     </CardContent>
 
-                                    <CardFooter className="mt-auto p-2 sm:p-4 pt-0 flex justify-center items-center">
+                                    <CardFooter className="mt-auto p-1 sm:p-1 pt-0 flex justify-center items-center">
                                         <Button
                                             variant="info"
-                                            className=" w-full h-7 sm:h-9 text-[10.5px] sm:text-sm font-medium cursor-pointer relative top-[3px] "
+                                            className=" w-full h-7 sm:h-9 text-[10.5px] sm:text-sm font-medium cursor-pointer mt-1 sm:mt-0"
                                             onClick={() => openViewLoans(mechanic.id)}
                                         >
                                             Ver préstamos

@@ -38,7 +38,7 @@ const pages = [
 
 export const router = createBrowserRouter([
   {
-    path: "public-prestamos",
+    path: "/public-prestamos",
     element: <Public_prestamos />,
   },
   {
@@ -47,10 +47,6 @@ export const router = createBrowserRouter([
       {
         path: "/login",
         element: <Login />,
-      },
-      {
-        path: "/public-prestamos",
-        element: <Public_prestamos />,
       },
     ],
   },

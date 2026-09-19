@@ -115,7 +115,7 @@ export function ModalVerPrestamosPublico({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="flex h-[min(100vh,44rem)] w-[min(94vw,58rem)] max-w-none flex-col gap-3 sm:gap-4 overflow-hidden p-3.5 sm:p-5 dark bg-background text-foreground">
+            <DialogContent className="!flex !h-[92vh] !w-[94vw] !max-w-none flex-col gap-3 overflow-hidden p-3.5 dark bg-background text-foreground sm:!h-[95vh] sm:!w-[60vw] sm:gap-4">
                 {/* Cabecera compacta del modal con info del mecánico */}
                 <DialogHeader className="space-y-2 border-b border-border/50 pb-3">
                     <div className="flex items-center gap-3 pr-6">
@@ -138,7 +138,6 @@ export function ModalVerPrestamosPublico({
                             </DialogTitle>
                             <p className="text-[11px] sm:text-xs text-muted-foreground truncate">
                                 {displayedMechanic?.apodo ? `“${displayedMechanic.apodo}” • ` : ""}
-                                {displayedMechanic?.cargo ?? "Personal Técnico"}
                             </p>
                         </div>
 
@@ -222,13 +221,13 @@ export function ModalVerPrestamosPublico({
                 )}
 
                 {/* Pie del modal */}
-                <DialogFooter className="mt-auto border-t border-border/50 pt-2.5 flex items-center justify-between sm:justify-end">
+                <DialogFooter className="border-t border-border/50 pt-2 flex flex-row justify-end" >
 
                     <Button
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="h-8 text-xs font-medium px-4"
+                        className="h-8 text-xs font-medium px-4 w-[60px]"
                         onClick={() => onOpenChange(false)}
                     >
                         Cerrar
