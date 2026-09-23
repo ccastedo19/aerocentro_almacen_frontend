@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { Search, Wrench } from "lucide-react"
 
+import { ModalNotificacionPublicaFlotante } from "@/components/modal/ModalNotificacionPublicaFlotante"
 import { ModalVerPrestamosPublico } from "@/components/modal/ModalVerPrestamosPublico"
 import { AlertError } from "@/components/ui/alert-error"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -15,6 +16,10 @@ import { Input } from "@/components/ui/input"
 import { PagePreloader } from "@/components/ui/page-preloader"
 import { ApiError } from "@/lib/api"
 import { getInicialesMecanico, optimizarImagenMecanico } from "@/lib/mecanicos"
+import {
+    obtenerNotificacionPublicaLibre,
+    type NotificacionPublica,
+} from "@/lib/notificaciones-publicas"
 import {
     estiloTarjetaMecanico,
     listarPrestamosDeMecanicoPublico,
@@ -32,11 +37,24 @@ export const Public_prestamos = () => {
     const [isLoading, setIsLoading] = useState(true)
     const [pageError, setPageError] = useState("")
 
+    // Estado para la notificación pública flotante
+    const [notificacionPublica, setNotificacionPublica] = useState<NotificacionPublica | null>(null)
+
     // Estado para ver préstamos en modal público (solo lectura)
     const [viewMechanicId, setViewMechanicId] = useState<string | null>(null)
     const [viewLoans, setViewLoans] = useState<DetallePrestamoActivo[]>([])
     const [isLoadingView, setIsLoadingView] = useState(false)
     const [viewError, setViewError] = useState("")
+
+    // Carga silenciosa de la notificación pública
+    const loadNotificacion = useCallback(async () => {
+        try {
+            const data = await obtenerNotificacionPublicaLibre()
+            setNotificacionPublica(data)
+        } catch {
+            // Silencioso
+        }
+    }, [])
 
     // Carga inicial y silenciosa de la lista de mecánicos
     const loadMecanicos = useCallback(async (isSilent = false) => {
@@ -79,13 +97,15 @@ export const Public_prestamos = () => {
     // 1. Efecto inicial de carga
     useEffect(() => {
         void loadMecanicos(false)
-    }, [loadMecanicos])
+        void loadNotificacion()
+    }, [loadMecanicos, loadNotificacion])
 
     // 2. Efecto de actualización en TIEMPO REAL (Polling automático cada 5 segundos)
     useEffect(() => {
         const timer = setInterval(() => {
             if (document.visibilityState === "visible") {
                 void loadMecanicos(true)
+                void loadNotificacion()
                 if (viewMechanicId) {
                     void loadViewLoans(viewMechanicId, true)
                 }
@@ -95,6 +115,7 @@ export const Public_prestamos = () => {
         const handleVisibilityChange = () => {
             if (document.visibilityState === "visible") {
                 void loadMecanicos(true)
+                void loadNotificacion()
                 if (viewMechanicId) {
                     void loadViewLoans(viewMechanicId, true)
                 }
@@ -107,7 +128,7 @@ export const Public_prestamos = () => {
             clearInterval(timer)
             document.removeEventListener("visibilitychange", handleVisibilityChange)
         }
-    }, [loadMecanicos, loadViewLoans, viewMechanicId])
+    }, [loadMecanicos, loadViewLoans, loadNotificacion, viewMechanicId])
 
     // Abrir modal de préstamos
     const openViewLoans = (mecanicoId: string) => {
@@ -302,6 +323,9 @@ export const Public_prestamos = () => {
                     }
                 }}
             />
+
+            {/* Modal de Notificación Pública Flotante */}
+            <ModalNotificacionPublicaFlotante notificacion={notificacionPublica} />
         </div>
     )
 }

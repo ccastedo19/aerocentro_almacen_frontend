@@ -20,6 +20,7 @@ import { Clientes } from "@/pages/Clientes";
 import { PuntoRecepcion } from "@/pages/PuntoRecepcion";
 import { NotFound } from "@/pages/NotFound";
 import { Public_prestamos } from "@/pages/Public_prestamos";
+import { NotificacionesPublicas } from "@/pages/NotificacionesPublicas";
 
 const pages = [
   { path: "inicio", element: <Inicio /> },
@@ -34,6 +35,7 @@ const pages = [
   { path: "historial-recepcion", element: <HistorialRecepcion /> },
   { path: "mecanicos", element: <Mecanicos /> },
   { path: "clientes", element: <Clientes /> },
+  { path: "notificaciones-publicas", element: <NotificacionesPublicas /> },
 ];
 
 export const router = createBrowserRouter([

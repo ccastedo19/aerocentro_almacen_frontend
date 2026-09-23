@@ -13,6 +13,7 @@ import {
   Tag,
   UserRound,
   Users,
+  Megaphone,
   Wrench,
 } from 'lucide-react'
 
@@ -126,6 +127,12 @@ const data = {
           title: "Usuarios",
           url: "/usuarios",
           icon: Users,
+          adminOnly: true,
+        },
+        {
+          title: "Notificaciones Publicas",
+          url: "/notificaciones-publicas",
+          icon: Megaphone,
           adminOnly: true,
         },
         {
