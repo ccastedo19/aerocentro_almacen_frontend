@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Eye, PackageSearch, Plus, RotateCcw, Search } from "lucide-react"
+import { Eye, PackageSearch, Plus, RotateCcw, Search, X } from "lucide-react"
 
 import { ModalAgregarPrestamo } from "@/components/modal/ModalAgregarPrestamo"
 import { ModalBuscarHerramientaGeneral } from "@/components/modal/ModalBuscarHerramientaGeneral"
@@ -376,6 +376,16 @@ export const PuntoPrestamos = () => {
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
               />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch("")}
+                  className="absolute top-1/2 right-3 -translate-y-1/2 cursor-pointer text-muted-foreground hover:text-foreground"
+                  aria-label="Limpiar búsqueda"
+                >
+                  <X className="size-4" />
+                </button>
+              )}
             </div>
 
             <span className="inline-flex items-center gap-1.5 rounded-full bg-muted px-3 py-1.5 text-xs font-medium self-start sm:self-center shrink-0">
