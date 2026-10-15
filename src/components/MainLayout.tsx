@@ -2,7 +2,7 @@ import { Outlet } from "react-router-dom";
 import { SidebarProvider, SidebarInset, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
 import { Breadcrumbs } from "@/components/Breadcrumbs";
-import { NotificationsMenu } from "@/components/notifications-menu";
+import { BotonNotas } from "@/components/boton-notas";
 import { NavbarUserMenu } from "@/components/user-menu";
 import { Separator } from "./ui/separator";
 
@@ -25,7 +25,7 @@ export const MainLayout = () => {
             <Breadcrumbs />
 
             <div className="ml-auto flex items-center gap-1 pl-4 sm:gap-2">
-                <NotificationsMenu />
+                <BotonNotas />
 
                 <Separator
                 orientation="vertical"

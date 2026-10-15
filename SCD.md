@@ -30,7 +30,7 @@ Proveer una interfaz de usuario moderna, rápida e intuitiva para los almacenist
 <!-- AUTO:metadata:START -->
 - **Proyecto**: tienda_componentes_full
 - **Versión**: 0.0.0
-- **Última actualización automática**: 2026-09-02T21:06:27.839Z
+- **Última actualización automática**: 2026-10-15T14:46:06.022Z
 - **Última modificación en `src/`**: 2026-08-28T13:01:15.566Z
 <!-- AUTO:metadata:END -->
 
@@ -145,12 +145,16 @@ src/
 - `src/pages/Datos_empresa.tsx`
 - `src/pages/Herramientas.tsx`
 - `src/pages/HistorialPrestamos.tsx`
+- `src/pages/HistorialRecepcion.tsx`
 - `src/pages/Inicio.tsx`
 - `src/pages/Login.tsx`
 - `src/pages/Marcas.tsx`
 - `src/pages/Mecanicos.tsx`
 - `src/pages/NotFound.tsx`
+- `src/pages/NotificacionesPublicas.tsx`
+- `src/pages/Public_prestamos.tsx`
 - `src/pages/PuntoPrestamos.tsx`
+- `src/pages/PuntoRecepcion.tsx`
 - `src/pages/Servicios.tsx`
 - `src/pages/Trabajadores.tsx`
 - `src/pages/Ubicaciones.tsx`
@@ -162,6 +166,8 @@ src/
 - `src/components/app-sidebar.tsx`
 - `src/components/auth-guards.tsx`
 - `src/components/auth-provider.tsx`
+- `src/components/boton-notas.tsx`
+- `src/components/form/ClienteCombobox.tsx`
 - `src/components/form/combobox-filtro.tsx`
 - `src/components/form/creatable-named-select.tsx`
 - `src/components/form/named-select.tsx`
@@ -176,15 +182,22 @@ src/
 - `src/components/modal/ModalBuscarHerramientaEnUso.tsx`
 - `src/components/modal/ModalBuscarHerramientaGeneral.tsx`
 - `src/components/modal/ModalCatalogo.tsx`
+- `src/components/modal/ModalCliente.tsx`
 - `src/components/modal/ModalCombinada.tsx`
 - `src/components/modal/ModalConfirmarEliminar.tsx`
 - `src/components/modal/ModalConfirmarRestaurarBackup.tsx`
+- `src/components/modal/ModalDetalleOrdenRecepcion.tsx`
+- `src/components/modal/ModalEditarOrdenRecepcion.tsx`
 - `src/components/modal/ModalHerramienta.tsx`
 - `src/components/modal/ModalHistorialPrestamo.tsx`
 - `src/components/modal/ModalLogout.tsx`
 - `src/components/modal/ModalMecanico.tsx`
+- `src/components/modal/ModalNota.tsx`
+- `src/components/modal/ModalNotificacionPublicaFlotante.tsx`
 - `src/components/modal/ModalUsuario.tsx`
+- `src/components/modal/ModalVerPdfRecepcion.tsx`
 - `src/components/modal/ModalVerPrestamos.tsx`
+- `src/components/modal/ModalVerPrestamosPublico.tsx`
 - `src/components/modal/ModalVerUnidades.tsx`
 
 ### Componentes de Catálogo (`src/components/catalogo`)
@@ -212,11 +225,15 @@ src/
 - `src/lib/backups.ts`
 - `src/lib/catalogo-tree.ts`
 - `src/lib/catalogo.ts`
+- `src/lib/clientes.ts`
 - `src/lib/combinadas.ts`
 - `src/lib/herramientas.ts`
 - `src/lib/historial-prestamos.ts`
 - `src/lib/inicio.ts`
 - `src/lib/mecanicos.ts`
+- `src/lib/nota.ts`
+- `src/lib/notificaciones-publicas.ts`
+- `src/lib/ordenes-recepcion.ts`
 - `src/lib/prestamos.ts`
 - `src/lib/toast.ts`
 - `src/lib/usuarios.ts`

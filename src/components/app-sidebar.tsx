@@ -37,7 +37,7 @@ const data = {
   teams: [
     {
       name: 'Aerocentro Almacén',
-      plan: 'Version 1.1',
+      plan: 'Version 1.2',
     },
   ],
   navGroups: [
